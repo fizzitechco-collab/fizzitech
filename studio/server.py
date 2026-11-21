@@ -721,6 +721,31 @@ def link_preview(request: Request, url: str = ""):
         raise HTTPException(422, "Couldn't open that video. Check the link is public and complete.")
 
 
+@app.get("/api/facecam-frame")
+def facecam_frame(request: Request, url: str = "", at: float = 60.0):
+    """One real frame for source-normalized webcam selection before making clips."""
+    url = url.strip()[:500]
+    if not media.site_allowed(url):
+        raise HTTPException(400, "Paste a supported video link.")
+    if not 0 <= at <= 43200:
+        raise HTTPException(400, "Preview time must be 0 to 43200 seconds.")
+    try:
+        auth.throttle(f"facecam-frame:{_me(request).id}", 5, 60)
+    except auth.AuthError:
+        raise HTTPException(429, "Too many frame previews. Try again shortly.")
+    try:
+        from . import webcam_preview
+        data = webcam_preview.frame(url, at)
+        return Response(content=data, media_type="image/jpeg",
+                        headers={"Cache-Control": "private, no-store"})
+    except media.YouTubeBlocked as exc:
+        raise HTTPException(503, str(exc))
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    except Exception:
+        raise HTTPException(422, "Could not get a frame from this timestamp. Try a different time, or use the preview after clips are found.")
+
+
 @app.post("/api/jobs")
 def create_from_link(body: dict = Body(...)):
     _need_verified()
