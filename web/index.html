@@ -1985,7 +1985,7 @@ function takeLink(A, u, input) {
   A.links.push(l); A.note = null;
   if (input) input.value = "";            // the box is free for the next link straight away
   drawAtt();
-  lookUp(u).then(info => { l.state = "ok"; l.info = info; }, e => { l.state = "bad"; l.msg = e.message; }).then(() => {
+  lookUp(u).then(info => { l.state = "ok"; l.info = info; if (!info.is_live && A.links.length === 1 && !A.busy && att() === A) setTimeout(() => { if (A.links.includes(l) && l.state === "ok" && !$("#formdlg")?.open) openLinkFacecamPicker(l.id); }, 120); }, e => { l.state = "bad"; l.msg = e.message; }).then(() => {
     drawAtt();
     if (A.queued && !A.links.some(x => x.state === "wait")) {
       A.queued = false;
