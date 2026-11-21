@@ -59,6 +59,19 @@ with tempfile.TemporaryDirectory(prefix="legend-smart-audio-") as folder:
     check("one-clip analysis is a recognized bounded option",
           jobs.clean_options({"max_clips": 1, "scan_entire": False})["max_clips"] == 1)
 
+    check("one requested clip stops after its first selection",
+          jobs._scan_quota_met({"options": {"max_clips": 1, "scan_entire": False},
+                                "clips": [{}]}))
+    check("ten requested clips continue until all ten are found",
+          not jobs._scan_quota_met({"options": {"max_clips": 10, "scan_entire": False},
+                                    "clips": [{}] * 9})
+          and jobs._scan_quota_met({"options": {"max_clips": 10, "scan_entire": False},
+                                    "clips": [{}] * 10}))
+    check("MAX ignores quota and keeps scanning",
+          not jobs._scan_quota_met({"options": {"max_clips": 100, "scan_entire": True},
+                                    "clips": [{}] * 100}))
+
+
     game, tags = games.detect("Epic MINECRAFT survival stream")
     check("upstream game matching recognizes Minecraft", game == "Minecraft" and "Minecraft" in tags)
     taglist = hashtags.make("I found diamonds and diamonds again", "Minecraft speedrun", "Streamer", game)
