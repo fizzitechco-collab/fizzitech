@@ -12,7 +12,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-from . import brain, campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage
+from . import brain, campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage, games, hashtags
 
 class _FairQueue:
     """Whose video is next. Each person has their own line and the lines take turns, so someone who adds ten
@@ -906,6 +906,7 @@ def _run_job(job):
                 vstate["path"] = path
             return vstate["path"]
 
+    game_name, _ = games.detect(job.get("title", ""), job.get("uploader", ""))
     exact = {}      # clip id -> (from, to, words): our own model's words for just that clip
 
     began = {}      # clip id -> when work on it started
@@ -1059,7 +1060,7 @@ def _run_job(job):
                                      job["uploader"], quota, int(o["min_len"]), int(o["max_len"]), notes.append,
                                      clip_mode=o.get("clip_mode", "gaming"), campaign_destination=o.get("campaign_destination", ""),
                                      gta6_only_live=o.get("gta6_only_live", False), taste_weights=taste_weights,
-                                     visual_ranker=visual_ranker)
+                                     visual_ranker=visual_ranker, game=game_name)
         tokens += ai.get("tokens", 0)
         model = ai.get("model") or model
         if ai.get("note"):
@@ -1069,6 +1070,10 @@ def _run_job(job):
                      end=round(c["end"] + shift, 2), style=o["style"], layout=o["layout"], caption_base=o.get("caption_base", "FFFFFF"),
                      caption_active=o.get("caption_active", "6BD7FF"), hook_box=o.get("hook_box", "FFFFFF"),
                      hook_text=o.get("hook_text", "14100E"), facecam_review=o.get("facecam_review", False), cta_enabled=o.get("cta_enabled", False), cta_creator_name=o.get("cta_creator_name") or job.get("uploader", ""), status="queued", version=0)
+            if o.get("clip_mode") == "gaming" and game_name:
+                # Upstream game tags, but keep special GTA6 and Expedia campaign copy intact.
+                block_words = [dict(w, s=w["s"] + shift) for w in bw]
+                hashtags.apply(c, block_words, job["title"], job["uploader"], game_name)
             job["clips"].append(c)
             futures.append((renders.submit(ctx.bind(make), c, list(words)), c))
         job["ai"] = {"model": model, "tokens": tokens, "note": "", "log": notes[-5:]}
