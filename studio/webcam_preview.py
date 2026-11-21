@@ -51,8 +51,10 @@ def frame(url: str, at: float) -> bytes:
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 timeout=18, check=False,
             )
-            if out.returncode or len(out.stdout) < 1024:
-                raise RuntimeError("Could not extract a frame from the downloaded video.")
+            if (out.returncode or len(out.stdout) < 1024 or
+                    not out.stdout.startswith(b"\xff\xd8") or
+                    not out.stdout.rstrip().endswith(b"\xff\xd9")):
+                raise RuntimeError("The video frame was not a valid JPEG image.")
             return out.stdout
         except (OSError, subprocess.TimeoutExpired, segment_download.DownloadFailure) as exc:
             raise RuntimeError(
