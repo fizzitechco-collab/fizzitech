@@ -4,7 +4,8 @@ import json, os, subprocess, sys, tempfile
 from pathlib import Path
 base = Path(tempfile.mkdtemp(prefix="pc-stor-"))
 old, new, pointer = base / "old-data", base / "bigger drive" / "PeakCut", base / "storage.json"
-os.environ.pop("PEAKCUT_DATA", None); os.environ.pop("PEAKCUT_MODELS", None)
+# Keep project .env from overriding this isolated test with real user-data paths.
+os.environ["PEAKCUT_DATA"] = ""; os.environ["PEAKCUT_MODELS"] = ""
 os.environ.update(DATABASE_URL="", PEAKCUT_STORAGE_FILE=str(pointer), PEAKCUT_ACCOUNTS="0", PEAKCUT_PUBLIC_URL="http://127.0.0.1:8765")
 pointer.write_text(json.dumps({"path": str(old)}))
 sys.path.insert(0, ".")
