@@ -911,6 +911,14 @@ input::placeholder{color:#777C85}
 .webcam-dialog{width:min(92vw,880px);max-width:880px;background:#18191D;color:#F3F4F6}
 .webcam-preview{width:100%;position:relative;cursor:crosshair;user-select:none;overflow:hidden;background:#07080A;border:1px solid #44474F;border-radius:10px;line-height:0}
 .webcam-preview img{display:block;width:100%;height:auto;pointer-events:none}
+
+.webcam-preview #webcam-box{box-sizing:border-box}
+.webcam-preview.picking{touch-action:none}
+.webcam-preview .webcam-placeholder{padding:65px 20px;text-align:center;line-height:1.5;color:#AEB3BC;font-size:13px}
+.facecam-link-btn{min-width:max-content}
+.facecam-link-btn.selected{border-color:#8FBE9F;color:#CFF4DB}
+.facecam-timebar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin:10px 0}
+.facecam-timebar label{max-width:175px}
 .webcam-preview #webcam-box{position:absolute;display:none;border:3px solid #FAFAFA;box-shadow:0 0 0 2000px rgba(0,0,0,.22),0 0 0 1px #0C0E10 inset;pointer-events:none}
 @media(max-width:1050px){.watch-live-btn{font-size:12px;padding:0 10px}}
 @media(max-width:760px){.composer-bar{flex-wrap:wrap!important}.watch-live-btn{order:3;width:100%}.composer-bar .hint{display:none}.gta-hint{padding:10px}}
@@ -1936,7 +1944,7 @@ function drawAtt() {
     const i = l.info;
     return rowHtml(A, {id: l.id, kind: "link", thumb: i.thumb ? `<img src="${i.thumb}" alt="">` : "", len: i.duration && !i.is_live ? fmtLen(i.duration) : "",
       title: i.title, sub: esc(i.uploader || "Video link"),
-      side: l.sending ? `<span class="ok up">Sending</span>` : i.is_live ? `<span class="ok live"><i></i>Live now</span>` : `<span class="ok">${ic("check")}Ready</span>`});
+      side: l.sending ? `<span class="ok up">Sending</span>` : !i.is_live ? `<button type="button" class="btn sm facecam-link-btn ${l.facecamRect ? "selected" : ""}" data-facecam-link="${esc(l.id)}">${l.facecamRect ? "✓ Facecam selected" : "Select facecam"}</button>` : i.is_live ? `<span class="ok live"><i></i>Live now</span>` : `<span class="ok">${ic("check")}Ready</span>`});
   }).join("");
   h += A.files.map(f => rowHtml(A, {id: f.id, kind: "file", thumb: `<video src="${f.src}#t=1" muted preload="metadata" playsinline></video>`,
     len: f.dur ? fmtLen(f.dur) : "", title: f.file.name,
@@ -2086,7 +2094,7 @@ async function makeClips() {
   let started = 0, failed = 0;
   for (const l of A.links.filter(x => x.state === "ok")) {
     l.sending = true; drawAtt();
-    try { await send("/api/jobs", {url: l.url, options: opts, creator: who}); l.state = "done"; started++; }
+    try { const linkOpts = l.facecamRect ? {...opts, facecam_rect:l.facecamRect, layout:"facecam", facecam_review:false} : opts; await send("/api/jobs", {url: l.url, options: linkOpts, creator: who}); l.state = "done"; started++; }
     catch (e) { l.state = "bad"; l.msg = e.message; failed++; }
     l.sending = false; drawAtt();
   }
@@ -2129,6 +2137,115 @@ async function updateLiveWatches() {
     box.innerHTML=active.map(w=>`<div class="watch-row"><span class="watch-ind"></span><div><b>${esc(w.status === "recording" ? "Recording livestream" : "Watching live link · every 5 min")}</b><small>${esc(w.url)}${w.error && w.status!=="recording" ? " · "+esc(w.error) : ""}</small></div><button type="button" class="btn sm danger" data-act="stoplivewatch" data-id="${esc(w.id)}">Stop</button></div>`).join("");
   } catch(e) { box.textContent=""; }
 }
+
+/* Legend source facecam rectangle chooser. The preview is a real source frame. */
+async function openLinkFacecamPicker(linkId) {
+  const A=att(), link=A.links.find(l=>l.id===linkId && l.state==="ok");
+  if(!link || A.busy)return;
+  const dlg=$("#formdlg");
+  dlg.innerHTML=`<div class="dlg webcam-dialog">
+    <h2>Choose facecam from video</h2>
+    <p class="help">Drag around the FULL webcam and background. Drag inside to move or use the bottom-right corner to resize. The gameplay uses a horizontal center crop beneath it.</p>
+    <div class="facecam-timebar"><label class="f">Frame at (seconds)<input type="number" id="source-frame-at" min="0" step="1" value="60"></label>
+      <button type="button" class="btn" id="source-frame-load">Load video frame</button></div>
+    <div class="webcam-preview picking" id="source-facecam-preview"><span class="webcam-placeholder">Loading a real video frame…</span><span id="webcam-box"></span></div>
+    <p id="source-facecam-feedback" class="help">Select a frame, then drag a rectangle around the facecam.</p>
+    <div class="dlg-foot"><button type="button" class="btn" id="source-facecam-clear">No facecam</button><button type="button" class="btn" id="source-facecam-close">Cancel</button><button type="button" class="btn primary" id="source-facecam-save" disabled>Use this facecam</button></div></div>`;
+  dlg.showModal();
+  const panel=$("#source-facecam-preview"),box=$("#webcam-box"),feedback=$("#source-facecam-feedback");
+  const loadBtn=$("#source-frame-load"),saveBtn=$("#source-facecam-save");
+  let coords=link.facecamRect ? link.facecamRect.split(",").map(Number) : null;
+  let ready=false,drag=null,controller=null;
+  const clamp=(n,min=0,max=1)=>Math.max(min,Math.min(max,n));
+  const paint=()=>{
+    if(!coords){box.style.display="none";saveBtn.disabled=true;return;}
+    const [x,y,w,h]=coords;
+    box.style.cssText=`display:block;left:${x*100}%;top:${y*100}%;width:${w*100}%;height:${h*100}%;`;
+    saveBtn.disabled=!ready;
+  };
+  const load=async()=>{
+    controller?.abort();controller=new AbortController();
+    const signal=controller.signal;
+    ready=false;drag=null;saveBtn.disabled=true;loadBtn.disabled=true;
+    panel.replaceChildren(Object.assign(document.createElement("span"),{className:"webcam-placeholder",textContent:"Loading a real video frame…"}),box);
+    const at=Number($("#source-frame-at").value);
+    if(!Number.isFinite(at)||at<0||at>(link.info?.duration||43200)){
+      feedback.textContent="Enter a time inside the video.";loadBtn.disabled=false;return;
+    }
+    try{
+      const res=await fetch("/api/facecam-frame?url="+encodeURIComponent(link.url)+"&at="+at,{signal,credentials:"same-origin"});
+      if(!res.ok){let reason="Frame not available";try{reason=(await res.json()).detail||reason}catch{}throw Error(reason)}
+      const blob=await res.blob();
+      if(!blob.type.startsWith("image/"))throw Error("Preview was not an image.");
+      const objectUrl=URL.createObjectURL(blob);
+      const img=document.createElement("img");
+      img.alt="A frame from this video";
+      img.onload=()=>{URL.revokeObjectURL(objectUrl);ready=true;paint()};
+      img.onerror=()=>{URL.revokeObjectURL(objectUrl);feedback.textContent="Could not display frame"};
+      img.src=objectUrl;
+      panel.replaceChildren(img,box);
+      feedback.textContent="Drag a box over the webcam. Move/resize it, then press Use this facecam.";
+    }catch(e){
+      if(e.name!=="AbortError"){
+        panel.replaceChildren(Object.assign(document.createElement("span"),{className:"webcam-placeholder",textContent:"Could not load this video frame. Try another time, or use the facecam review after highlights are found."}),box);
+        feedback.textContent=e.message;
+      }
+    }finally{if(!signal.aborted)loadBtn.disabled=false}
+  };
+  const pt=e=>{
+    const r=panel.getBoundingClientRect();
+    return [clamp((e.clientX-r.left)/r.width),clamp((e.clientY-r.top)/r.height)];
+  };
+  panel.onpointerdown=e=>{
+    if(!ready||e.button!==0)return;
+    const [x,y]=pt(e);let mode="draw",initial=coords?.slice();
+    if(initial){
+      const [a,b,w,h]=initial,r=panel.getBoundingClientRect();
+      if(Math.abs(x-a-w)*r.width<22&&Math.abs(y-b-h)*r.height<22)mode="resize";
+      else if(x>=a&&x<=a+w&&y>=b&&y<=b+h)mode="move";
+    }
+    drag={mode,origin:[x,y],initial};
+    if(mode==="draw")coords=[x,y,.08,.08];
+    panel.setPointerCapture(e.pointerId);paint();e.preventDefault();
+  };
+  panel.onpointermove=e=>{
+    if(!drag)return;
+    const [x,y]=pt(e),[ox,oy]=drag.origin;
+    if(drag.mode==="draw"){
+      const a=Math.min(x,ox),b=Math.min(y,oy);
+      coords=[a,b,Math.min(1-a,Math.max(.08,Math.abs(x-ox))),Math.min(1-b,Math.max(.08,Math.abs(y-oy)))];
+    }else if(drag.mode==="move"){
+      const [a,b,w,h]=drag.initial;
+      coords=[clamp(a+x-ox,0,1-w),clamp(b+y-oy,0,1-h),w,h];
+    }else{
+      const [a,b]=drag.initial;coords=[a,b,clamp(x-a,.08,1-a),clamp(y-b,.08,1-b)];
+    }
+    paint();
+  };
+  panel.onpointerup=()=>{
+    if(!drag)return;drag=null;
+    if(coords)coords=coords.map(n=>Math.round(n*10000)/10000);
+    paint();
+  };
+  panel.onpointercancel=()=>{drag=null};
+  $("#source-frame-load").onclick=load;
+  $("#source-facecam-close").onclick=()=>{controller?.abort();dlg.close()};
+  $("#source-facecam-clear").onclick=()=>{
+    link.facecamRect="";coords=null;dlg.close();drawAtt();toast("Custom facecam removed.","ok");
+  };
+  $("#source-facecam-save").onclick=()=>{
+    if(!ready||!coords)return;
+    link.facecamRect=coords.map(n=>n.toFixed(4)).join(",");
+    dlg.close();drawAtt();toast("Facecam selected. Make clips to apply it.","ok");
+  };
+  dlg.addEventListener("close",()=>controller?.abort(),{once:true});
+  load();
+}
+document.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-facecam-link]");
+  if(btn){e.preventDefault();openLinkFacecamPicker(btn.dataset.facecamLink)}
+});
+
 let currentFacecamCoords=null;
 function openFacecamReview(jid,cid) {
   const clip=jobOf(jid)?.clips.find(c=>c.id===cid);
