@@ -135,6 +135,7 @@ DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "la
 
 # LEGEND NEON V1: safe per-job analysis defaults
 DEFAULTS['analysis_mode'] = 'fast'
+DEFAULTS['scan_entire'] = False  # MAX mode: inspect the complete selected recording
 
 LIMITS = {"max_clips": (1, 100), "min_len": (5, 120), "max_len": (10, 180)}
 
@@ -167,7 +168,7 @@ def clean_options(options) -> dict:
             if str(v).strip():
                 parse_webcam_rect(v)
             v = str(v).strip()[:60]
-        elif k in ("gta6_only_live", "facecam_review", "cta_enabled"):
+        elif k in ("gta6_only_live", "facecam_review", "cta_enabled", "scan_entire"):
             v = v is True or str(v).lower() in ("1", "true", "yes", "on")
         elif k == "cta_creator_name":
             v = str(v).strip()[:70]
@@ -828,6 +829,7 @@ def _run_job(job):
         _set(job, stage="Getting the audio")
     fetch = ThreadPoolExecutor(1)
     video = None
+    fast_audio = False
     if src["type"] == "url":
         meta = media.info(src["url"])
         if meta["kind"] != "video":
@@ -843,10 +845,23 @@ def _run_job(job):
         usage.set_context(job["creator"], meta["title"])
         span = (o["range_end"] or meta["duration"]) - (o["range_start"] or 0)
         pieces = (config.env("PEAKCUT_SEGMENTS_ONLY", "1") == "1" or span > LONG_VIDEO or meta["duration"] <= 0)
+        # Small requested counts scan short audio sections and stop once enough
+        # good highlights are selected. MAX keeps the full-range analysis.
+        fast_audio = (int(o["max_clips"]) <= 10 and not o.get("scan_entire")
+                      and span > 180 and meta["duration"] > 180
+                      and config.env("PEAKCUT_SMART_AUDIO", "1") != "0")
+        if fast_audio:
+            pieces = True
         if not pieces:  # shorter video: fetch all of it in the background while the audio is worked on
             video = fetch.submit(media.download, src["url"], d, int(o["quality"]))
-        audio_file = media.download_audio(src["url"], d, lambda p: _set(job, progress=0.03 + 0.1 * p),
-                                          cancelled=lambda: bool(job.get("cancel_requested")))
+        if fast_audio:
+            from .progressive_audio import ProgressiveAudio
+            audio = ProgressiveAudio(src["url"], d, meta["duration"],
+                                     cancelled=lambda: bool(job.get("cancel_requested")))
+            _set(job, stage="Scanning audio in small sections")
+        else:
+            audio_file = media.download_audio(src["url"], d, lambda p: _set(job, progress=0.03 + 0.1 * p),
+                                              cancelled=lambda: bool(job.get("cancel_requested")))
     else:
         pieces, audio_file = False, Path(src["path"])
         info = media.probe(audio_file)
@@ -855,19 +870,20 @@ def _run_job(job):
         _set(job, source_path=str(audio_file), width=info["width"], height=info["height"], duration=info["duration"])
         if not job.get("thumb") and media.save_thumb(d, video=audio_file):
             _set(job, thumb=True)
-    wav = d / "audio.wav"
-    media.extract_audio(audio_file, wav,
-                        cancelled=lambda: bool(job.get("cancel_requested")))
-    audio = media.load_audio(wav)
-    wav.unlink(missing_ok=True)
-    if src["type"] == "url":
-        audio_file.unlink(missing_ok=True)
+    if not fast_audio:
+        wav = d / "audio.wav"
+        media.extract_audio(audio_file, wav,
+                            cancelled=lambda: bool(job.get("cancel_requested")))
+        audio = media.load_audio(wav)
+        wav.unlink(missing_ok=True)
+        if src["type"] == "url":
+            audio_file.unlink(missing_ok=True)
     if not job["duration"]:
         job["duration"] = len(audio) / 16000
     lo = int((o["range_start"] or 0) * 16000)
     hi = min(len(audio), int(o["range_end"] * 16000)) if o["range_end"] else len(audio)
     span = (hi - lo) / 16000
-    db = media.loudness_per_second(audio[lo:hi])
+    db = None if fast_audio else media.loudness_per_second(audio[lo:hi])
 
     vlock, vstate = threading.Lock(), {}
 
@@ -943,7 +959,7 @@ def _run_job(job):
     render_workers = max(1, min(4, int(config.env("PEAKCUT_RENDER_WORKERS", "1"))))
     renders = ThreadPoolExecutor(render_workers)
     futures = []
-    step = BLOCK * 16000 if span > PROGRESSIVE_FROM else hi - lo
+    step = (180 * 16000 if fast_audio else BLOCK * 16000 if span > PROGRESSIVE_FROM else hi - lo)
     blocks = [(x, min(hi, x + step)) for x in range(lo, hi, step)] or [(lo, hi)]
     words, tokens, model = [], 0, None
     done_blocks = 0
@@ -1001,7 +1017,8 @@ def _run_job(job):
             _set(job, stage="Writing the transcript" + where)
             now_on[0] = bi
             hear(bi)
-            hear(bi + 1)
+            if not fast_audio:  # never pre-download audio beyond the desired highlights
+                hear(bi + 1)
             bw = heard.pop(bi).result()
         _set(job, progress=max(job["progress"], 0.14 + 0.78 * (b - lo) / max(1, hi - lo)))
         words += [dict(w, s=round(w["s"] + shift, 2), e=round(w["e"] + shift, 2)) for w in bw]
@@ -1011,6 +1028,8 @@ def _run_job(job):
         if left <= 0 or len(bw) < 8:
             job["done_blocks"] = bi + 1
             save(job)
+            if left <= 0 and not o.get("scan_entire"):
+                break
             continue
         quota = max(1, math.ceil(left / (len(blocks) - bi)))
         # Uploaded/local videos: rerank up to 12 AI candidates by visual motion
@@ -1034,7 +1053,9 @@ def _run_job(job):
                         candidate["_visual_info"] = neon_signals.analyze(video, base + rs, base + re, timeout=10)
                     return neon_signals.boost(candidate["_visual_info"])
         s0 = int((a - lo) / 16000)
-        found, ai = brain.find_clips(bw, db[s0: s0 + int((b - a) / 16000) + 1], (b - a) / 16000, job["title"],
+        levels = (media.loudness_per_second(audio[a:b]) if fast_audio
+                  else db[s0: s0 + int((b - a) / 16000) + 1])
+        found, ai = brain.find_clips(bw, levels, (b - a) / 16000, job["title"],
                                      job["uploader"], quota, int(o["min_len"]), int(o["max_len"]), notes.append,
                                      clip_mode=o.get("clip_mode", "gaming"), campaign_destination=o.get("campaign_destination", ""),
                                      gta6_only_live=o.get("gta6_only_live", False), taste_weights=taste_weights,
@@ -1053,6 +1074,9 @@ def _run_job(job):
         job["ai"] = {"model": model, "tokens": tokens, "note": "", "log": notes[-5:]}
         job["done_blocks"] = bi + 1       # a restart from here on carries on with the next part
         save(job)
+        if len(job["clips"]) >= int(o["max_clips"]) and not o.get("scan_entire"):
+            notes.append(f"Stopped audio analysis after finding {len(job['clips'])} requested clips.")
+            break
     _check_cancel(job)
     if futures:
         _set(job, stage="Finishing the clips", progress=max(job["progress"], 0.92),
