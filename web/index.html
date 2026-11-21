@@ -909,6 +909,7 @@ input::placeholder{color:#777C85}
 .watch-row b,.watch-row small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .watch-row small{color:#8A919A}
 .webcam-dialog{width:min(92vw,880px);max-width:880px;background:#18191D;color:#F3F4F6}
+.webcam-dialog h2{color:#F3F4F6!important}
 .webcam-preview{width:100%;position:relative;cursor:crosshair;user-select:none;overflow:hidden;background:#07080A;border:1px solid #44474F;border-radius:10px;line-height:0}
 .webcam-preview img{display:block;width:100%;height:auto;pointer-events:none}
 
@@ -2155,7 +2156,8 @@ async function openLinkFacecamPicker(linkId) {
   const panel=$("#source-facecam-preview"),box=$("#webcam-box"),feedback=$("#source-facecam-feedback");
   const loadBtn=$("#source-frame-load"),saveBtn=$("#source-facecam-save");
   let coords=link.facecamRect ? link.facecamRect.split(",").map(Number) : null;
-  let ready=false,drag=null,controller=null;
+  let ready=false,drag=null,controller=null,frameUrl=null;
+  const releaseFrame=()=>{if(frameUrl){URL.revokeObjectURL(frameUrl);frameUrl=null;}};
   const clamp=(n,min=0,max=1)=>Math.max(min,Math.min(max,n));
   const paint=()=>{
     if(!coords){box.style.display="none";saveBtn.disabled=true;return;}
@@ -2164,7 +2166,7 @@ async function openLinkFacecamPicker(linkId) {
     saveBtn.disabled=!ready;
   };
   const load=async()=>{
-    controller?.abort();controller=new AbortController();
+    controller?.abort();releaseFrame();controller=new AbortController();
     const signal=controller.signal;
     ready=false;drag=null;saveBtn.disabled=true;loadBtn.disabled=true;
     panel.replaceChildren(Object.assign(document.createElement("span"),{className:"webcam-placeholder",textContent:"Loading a real video frame…"}),box);
@@ -2177,13 +2179,13 @@ async function openLinkFacecamPicker(linkId) {
       if(!res.ok){let reason="Frame not available";try{reason=(await res.json()).detail||reason}catch{}throw Error(reason)}
       const blob=await res.blob();
       if(!blob.type.startsWith("image/"))throw Error("Preview was not an image.");
-      const objectUrl=URL.createObjectURL(blob);
+      frameUrl=URL.createObjectURL(blob);
       const img=document.createElement("img");
       img.alt="A frame from this video";
-      img.onload=()=>{URL.revokeObjectURL(objectUrl);ready=true;paint()};
-      img.onerror=()=>{URL.revokeObjectURL(objectUrl);feedback.textContent="Could not display frame"};
-      img.src=objectUrl;
+      img.onload=()=>{if(!signal.aborted){ready=true;paint()}};
+      img.onerror=()=>{ready=false;saveBtn.disabled=true;feedback.textContent="Could not display frame";};
       panel.replaceChildren(img,box);
+      img.src=frameUrl;
       feedback.textContent="Drag a box over the webcam. Move/resize it, then press Use this facecam.";
     }catch(e){
       if(e.name!=="AbortError"){
@@ -2238,7 +2240,7 @@ async function openLinkFacecamPicker(linkId) {
     link.facecamRect=coords.map(n=>n.toFixed(4)).join(",");
     dlg.close();drawAtt();toast("Facecam selected. Make clips to apply it.","ok");
   };
-  dlg.addEventListener("close",()=>controller?.abort(),{once:true});
+  dlg.addEventListener("close",()=>{controller?.abort();releaseFrame();},{once:true});
   load();
 }
 document.addEventListener("click",e=>{
