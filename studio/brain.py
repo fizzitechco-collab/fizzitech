@@ -7,9 +7,21 @@ import time
 
 import numpy as np
 
-from . import ai, config, usage, roman, campaigns, gta6, clip_taste, neon_signals  # LEGEND NEON V1
+from . import ai, config, usage, roman, campaigns, gta6, clip_taste, neon_signals, games  # LEGEND NEON V1
 
 WINDOW_SEC, OVERLAP_SEC = 15 * 60, 60
+
+
+def _game_note(game):
+    """A source-title hint, never permission to invent unseen gameplay."""
+    if not game:
+        return ""
+    name = games.name_of(game)
+    tags = ", ".join(games.tags_of(game)[:5])
+    return ("\nGame named in source title: " + _safe(name, 60) +
+            ". Use the game as context for accurate titles and hashtags (" + _safe(tags, 150) +
+            "). Do not invent action that the transcript does not support.\n")
+
 
 SCHEMA = {
     "type": "ARRAY",
@@ -300,7 +312,7 @@ def fallback_by_loudness(db, words, n, max_len, duration):
     return picks
 
 
-def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=15, max_len=60, log=print, clip_mode="gaming", campaign_destination="", gta6_only_live=False, taste_weights=None, visual_ranker=None):
+def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=15, max_len=60, log=print, clip_mode="gaming", campaign_destination="", gta6_only_live=False, taste_weights=None, visual_ranker=None, game=None):
     if clip_mode == "gta6" and not gta6.stream_eligible(title, gta6_only_live):
         return [], {"model": None, "note": "GTA VI-only stream required. This video title looks mixed or does not identify GTA VI."}
     z = loud_zscore(db)
@@ -321,6 +333,7 @@ def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=
         selected_head = IRL_HEAD if clip_mode in ("irl", campaigns.EXPEDIA_CAMPAIGN) else HEAD
         prompt = (selected_head.format(title=_safe(title) or "unknown", uploader=_safe(uploader) or "unknown", n=per_window)
                   + _mode_guidance(clip_mode)
+                  + (_game_note(game) if clip_mode == "gaming" else "")
                   + (gta6.GUIDANCE if clip_mode == "gta6" else "")
                   + RULES.format(min_len=min_len, max_len=max_len, transcript=_fmt(chunk)))
         try:
