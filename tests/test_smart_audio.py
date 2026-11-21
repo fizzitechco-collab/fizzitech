@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from studio import games, hashtags, jobs, server
+from studio import games, hashtags, jobs, posting, server
 from studio.progressive_audio import ProgressiveAudio, RATE
 
 checks = 0
@@ -77,6 +77,11 @@ with tempfile.TemporaryDirectory(prefix="legend-smart-audio-") as folder:
     taglist = hashtags.make("I found diamonds and diamonds again", "Minecraft speedrun", "Streamer", game)
     check("game tag appears in generated hashtag list", "minecraft" in taglist)
     check("game hashtags stay unique", len(taglist) == len(set(taglist)))
+    sample = {"description": "Clip context\n\n#minecraft #gaming",
+              "hashtags": ["minecraft", "gaming"], "hashtags_in_description": True}
+    posted = posting._caption(sample, {"name": "", "post_footer": ""})
+    check("upstream hashtags are not duplicated at posting time", posted.lower().count("#minecraft") == 1)
+
 
     check("browser policy allows in-memory blob preview images", "img-src 'self' data: blob:" in server.CSP)
 
