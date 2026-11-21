@@ -805,6 +805,13 @@ def _covers(words: list, start: float, end: float) -> bool:
     return len(inside) >= 25 * minutes and inside[-1]["s"] >= start + 0.85 * (end - start)
 
 
+def _scan_quota_met(job) -> bool:
+    """Fixed clip counts stop once enough moments are chosen; MAX scans all."""
+    options = job["options"]
+    return (not options.get("scan_entire")
+            and len(job["clips"]) >= int(options["max_clips"]))
+
+
 def _run_job(job):
     _check_cancel(job)
     import math
@@ -1029,7 +1036,7 @@ def _run_job(job):
         if left <= 0 or len(bw) < 8:
             job["done_blocks"] = bi + 1
             save(job)
-            if left <= 0 and not o.get("scan_entire"):
+            if _scan_quota_met(job):
                 break
             continue
         quota = max(1, math.ceil(left / (len(blocks) - bi)))
@@ -1079,7 +1086,7 @@ def _run_job(job):
         job["ai"] = {"model": model, "tokens": tokens, "note": "", "log": notes[-5:]}
         job["done_blocks"] = bi + 1       # a restart from here on carries on with the next part
         save(job)
-        if len(job["clips"]) >= int(o["max_clips"]) and not o.get("scan_entire"):
+        if _scan_quota_met(job):
             notes.append(f"Stopped audio analysis after finding {len(job['clips'])} requested clips.")
             break
     _check_cancel(job)
