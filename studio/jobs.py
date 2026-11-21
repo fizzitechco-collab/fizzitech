@@ -857,8 +857,13 @@ def _run_job(job):
         fast_audio = (int(o["max_clips"]) <= 10 and not o.get("scan_entire")
                       and span > 180 and meta["duration"] > 180
                       and config.env("PEAKCUT_SMART_AUDIO", "1") != "0")
+        # A job started on an older release used 10-minute blocks.
+        # Do not reinterpret its saved done_blocks as 3-minute blocks.
+        if fast_audio and resuming and job.get("scan_block_seconds") != 180:
+            fast_audio = False
         if fast_audio:
             pieces = True
+            job["scan_block_seconds"] = 180
         if not pieces:  # shorter video: fetch all of it in the background while the audio is worked on
             video = fetch.submit(media.download, src["url"], d, int(o["quality"]))
         if fast_audio:
