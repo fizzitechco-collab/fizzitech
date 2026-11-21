@@ -8,7 +8,8 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-os.environ.setdefault("PEAKCUT_DATA", tempfile.mkdtemp(prefix="legend-smart-test-data-"))
+if not os.environ.get("PEAKCUT_DATA"):
+    os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="legend-smart-test-data-")
 
 import numpy as np
 
