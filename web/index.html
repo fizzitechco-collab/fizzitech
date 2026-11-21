@@ -2095,7 +2095,7 @@ async function makeClips() {
   let started = 0, failed = 0;
   for (const l of A.links.filter(x => x.state === "ok")) {
     l.sending = true; drawAtt();
-    try { const linkOpts = l.facecamRect ? {...opts, facecam_rect:l.facecamRect, layout:"facecam", facecam_review:false} : opts; await send("/api/jobs", {url: l.url, options: linkOpts, creator: who}); l.state = "done"; started++; }
+    try { const linkOpts = l.facecamRect ? {...opts, facecam_rect:l.facecamRect, layout:"facecam", facecam_review:false} : l.forceCrop ? {...opts, layout:"crop", facecam_review:false} : opts; await send("/api/jobs", {url: l.url, options: linkOpts, creator: who}); l.state = "done"; started++; }
     catch (e) { l.state = "bad"; l.msg = e.message; failed++; }
     l.sending = false; drawAtt();
   }
@@ -2233,11 +2233,11 @@ async function openLinkFacecamPicker(linkId) {
   $("#source-frame-load").onclick=load;
   $("#source-facecam-close").onclick=()=>{controller?.abort();dlg.close()};
   $("#source-facecam-clear").onclick=()=>{
-    link.facecamRect="";coords=null;dlg.close();drawAtt();toast("Custom facecam removed.","ok");
+    link.facecamRect="";link.forceCrop=true;coords=null;dlg.close();drawAtt();toast("Facecam skipped for this video.","ok");
   };
   $("#source-facecam-save").onclick=()=>{
     if(!ready||!coords)return;
-    link.facecamRect=coords.map(n=>n.toFixed(4)).join(",");
+    link.facecamRect=coords.map(n=>n.toFixed(4)).join(",");link.forceCrop=false;
     dlg.close();drawAtt();toast("Facecam selected. Make clips to apply it.","ok");
   };
   dlg.addEventListener("close",()=>{controller?.abort();releaseFrame();},{once:true});
