@@ -81,6 +81,15 @@ PEAKCUT_AI_KEY=your-key-here
   tokens each video took.
 - Speech to text does not use the AI service. It runs on your own machine, so audio never leaves it.
 
+## LegendClipper improvements (feature branch)
+
+- **Facecam from the source video:** after adding a video link, choose a real frame at a timestamp; draw, move, and resize the webcam rectangle. The final 9:16 render puts the facecam above center-cropped gameplay. You can also skip facecam.
+- **Smart early-stop audio scanning:** for 1–10 requested clips in a recording longer than three minutes, download small audio sections as needed and stop searching when the requested number of strong clips has been selected. If fewer strong moments exist, it continues searching the available range. If section downloading is unavailable, it falls back to the existing full-audio download method.
+- **MAX mode:** scan the complete selected recording, capped at up to 100 clips by the dashboard.
+- **Game-aware metadata:** selected ordinary gaming clips receive more relevant hashtags from the game's title (Minecraft, GTA, Fortnite and other recognized games). Existing custom GTA VI and Expedia campaign logic is unchanged.
+
+Set `PEAKCUT_SMART_AUDIO=0` in `.env` to disable short-section audio scanning and use the previous full-audio workflow. The existing video-segment downloader is unchanged.
+
 ## Settings
 
 Everything is set through environment variables, normally in a `.env` file next to this README.
