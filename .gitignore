@@ -30,3 +30,9 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# ---- local recovery files (keep them out of source control)
+*.bak
+*.backup-*
+*.path-backup
+*.audio-backup-*
