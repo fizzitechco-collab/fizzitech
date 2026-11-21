@@ -267,11 +267,17 @@ def download_audio(url: str, job_dir: Path, on_progress=None, cancelled=None) ->
         if cancelled and cancelled():
             raise DownloadCancelled("Audio download stopped by user")
 
+    last_report = [-1e9]
+
     def hook(data):
         check_cancel()
         total = data.get("total_bytes") or data.get("total_bytes_estimate")
         if on_progress and data.get("status") == "downloading" and total:
-            on_progress(data.get("downloaded_bytes", 0) / total)
+            fraction = max(0.0, min(1.0, data.get("downloaded_bytes", 0) / total))
+            now = time.monotonic()
+            if now - last_report[0] >= 0.5 or fraction >= 1.0:
+                last_report[0] = now
+                on_progress(fraction)
         check_cancel()
 
     youtube = is_youtube(url)
@@ -284,7 +290,7 @@ def download_audio(url: str, job_dir: Path, on_progress=None, cancelled=None) ->
     check_cancel()
     for name, fmt in attempts:
         check_cancel()
-        stem = "audio_src_" + name
+        stem = "audio_src"  # keep existing output name expected elsewhere
         # Never return a stale or partially written attempt.
         for previous in job_dir.glob(stem + ".*"):
             if previous.is_file():
@@ -306,7 +312,7 @@ def download_audio(url: str, job_dir: Path, on_progress=None, cancelled=None) ->
                 ydl.download([url])
             check_cancel()
             result = _biggest(job_dir, stem)
-            if result.stat().st_size <= 4096:
+            if result.stat().st_size == 0:
                 raise RuntimeError("Audio download produced an empty file.")
             return result
         except (DownloadCancelled, YouTubeBlocked):
