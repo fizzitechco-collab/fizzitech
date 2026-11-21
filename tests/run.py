@@ -49,6 +49,7 @@ def main() -> int:
                 ("abuse and limits", ["tests/test_abuse.py", BASE, str(ROOT)]),
                 ("queue under load", ["tests/test_load_queue.py", str(ROOT)]),
                 ("Windows job saving and download progress", ["tests/test_job_save_windows.py"]),
+                ("smart audio scan and facecam preview", ["tests/test_smart_audio.py"]),
                 ("deleting and bulk actions", ["tests/test_delete.py"]),
                 ("big uploads in pieces", ["tests/test_upload_parts.py", BASE]),
                 ("AI services", ["tests/test_ai.py"]),
