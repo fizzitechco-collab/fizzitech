@@ -252,26 +252,75 @@ def save_thumb(job_dir: Path, url: str = "", video: Path = None) -> bool:
 
 
 def download_audio(url: str, job_dir: Path, on_progress=None, cancelled=None) -> Path:
-    """Download source audio; Stop Video interrupts the next yt-dlp progress callback."""
+    """Fetch audio for transcription. Try YouTube HLS first, then HTTPS audio.
+
+    This is separate from segment_download.download_section: both must use a
+    working source format. Never silently treat a missing or partial audio
+    file as a successful download.
+    """
+    import shutil
+
+    job_dir = Path(job_dir).resolve()
+    job_dir.mkdir(parents=True, exist_ok=True)
+
     def check_cancel():
         if cancelled and cancelled():
             raise DownloadCancelled("Audio download stopped by user")
 
-    def hook(d):
+    def hook(data):
         check_cancel()
-        total = d.get("total_bytes") or d.get("total_bytes_estimate")
-        if on_progress and d.get("status") == "downloading" and total:
-            on_progress(d.get("downloaded_bytes", 0) / total)
+        total = data.get("total_bytes") or data.get("total_bytes_estimate")
+        if on_progress and data.get("status") == "downloading" and total:
+            on_progress(data.get("downloaded_bytes", 0) / total)
         check_cancel()
 
-    check_cancel()
-    with _youtube_guard(url), _ydl({"format": "ba[ext=m4a]/ba/worst", "outtmpl": str(job_dir / "audio_src.%(ext)s"),
-               "progress_hooks": [hook]}) as ydl:
-        check_cancel()
-        ydl.download([url])
-    check_cancel()
-    return _biggest(job_dir, "audio_src")
+    youtube = is_youtube(url)
+    attempts = [
+        ("hls", "234/ba[protocol^=m3u8]"),
+        ("https", "ba[protocol^=https][ext=m4a]/ba[ext=m4a]/ba"),
+    ] if youtube else [("standard", "ba[ext=m4a]/ba")]
+    failures = []
 
+    check_cancel()
+    for name, fmt in attempts:
+        check_cancel()
+        stem = "audio_src_" + name
+        # Never return a stale or partially written attempt.
+        for previous in job_dir.glob(stem + ".*"):
+            if previous.is_file():
+                previous.unlink(missing_ok=True)
+        options = {
+            "format": fmt,
+            "outtmpl": str(job_dir / (stem + ".%(ext)s")),
+            "progress_hooks": [hook],
+            "retries": 3,
+            "fragment_retries": 6,
+            "socket_timeout": 25,
+            "concurrent_fragment_downloads": 2,
+        }
+        if youtube and shutil.which("deno"):
+            options["js_runtimes"] = {"deno": {}}
+        try:
+            with _youtube_guard(url), _ydl(options) as ydl:
+                check_cancel()
+                ydl.download([url])
+            check_cancel()
+            result = _biggest(job_dir, stem)
+            if result.stat().st_size <= 4096:
+                raise RuntimeError("Audio download produced an empty file.")
+            return result
+        except (DownloadCancelled, YouTubeBlocked):
+            raise
+        except Exception as exc:
+            check_cancel()
+            failures.append(name + ": " + str(exc)[-160:])
+            for partial in job_dir.glob(stem + ".*"):
+                if partial.is_file():
+                    partial.unlink(missing_ok=True)
+    raise RuntimeError(
+        "Could not get source audio with HLS or HTTPS. Check yt-dlp, Deno, "
+        "YouTube access and the source link. " + "; ".join(failures)
+    )
 
 def download(url: str, job_dir: Path, height=720) -> Path:
     """The whole video. Used for shorter videos, where this is quicker than fetching pieces."""
