@@ -2780,7 +2780,8 @@ function drawClipDlg(full) {
           <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
         <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" value="${c.start}"></label>
           <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" value="${c.end}"></label></div>
-        <h3>Post text</h3>
+        <div class="row" style="justify-content:space-between;align-items:center"><h3>Post text</h3>
+          <button class="btn sm" data-act="writetext" ${c.status === "done" && !c.campaign_review_required && ["gaming","irl"].includes(j.options?.clip_mode || "gaming") ? "" : "disabled"}>Write again with AI</button></div>
         <label class="f">Title<input data-f="title" value="${esc(c.title)}"></label>
         <label class="f">Description<textarea data-f="description" rows="3" maxlength="2000">${esc(c.description || "")}</textarea></label>
         <label class="f">Hashtags<input data-f="hashtags" value="${esc((c.hashtags || []).join(" "))}" placeholder="minecraft funny clutch"></label>
@@ -3164,6 +3165,18 @@ document.addEventListener("click", async e => {
     if (a === "accremove") {
       if (!await ask("Disconnect this account?", "Posts still waiting for it will fail.", "Disconnect", true)) return;
       await api(`/api/accounts/${d.id}`, {method:"DELETE"}); await tick(); return drawSettings();
+    }
+    if (a === "writetext") {
+      b.disabled = true; const oldLabel = b.textContent; b.textContent = "Writing…";
+      try {
+        const draft = await send(`/api/jobs/${D.jid}/clips/${D.cid}/write`, {});
+        const f = k => $("#clipdlg [data-f='"+k+"']");
+        if (f("title")) f("title").value = draft.title || "";
+        if (f("description")) f("description").value = draft.description || "";
+        if (f("hashtags")) f("hashtags").value = (draft.hashtags || []).join(" ");
+        toast("AI wrote a DRAFT. Review it and press Save post text only.", "ok");
+        return;
+      } finally { b.disabled = false; b.textContent = oldLabel; }
     }
     if (a === "saveposttext") {
       b.disabled = true;
