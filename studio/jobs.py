@@ -1175,7 +1175,8 @@ def _run_job(job):
                                      job["uploader"], quota, int(o["min_len"]), int(o["max_len"]), notes.append,
                                      clip_mode=o.get("clip_mode", "gaming"), campaign_destination=o.get("campaign_destination", ""),
                                      gta6_only_live=o.get("gta6_only_live", False), taste_weights=taste_weights,
-                                     visual_ranker=visual_ranker, game=game_name)
+                                     visual_ranker=visual_ranker, game=game_name,
+                                     custom_campaign=job.get("custom_campaign"))
         tokens += ai.get("tokens", 0)
         model = ai.get("model") or model
         if ai.get("note"):
