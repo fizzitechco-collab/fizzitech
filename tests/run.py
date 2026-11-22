@@ -55,6 +55,7 @@ def main() -> int:
                 ("big uploads in pieces", ["tests/test_upload_parts.py", BASE]),
                 ("AI services", ["tests/test_ai.py"]),
                 ("API and connected-app key saving", ["tests/test_keys_persistence.py"]),
+                ("upstream creator campaign copy and post text", ["tests/test_upstream_campaign_sync.py"]),
                 ("no sign-in, and the AI key from the dashboard", ["tests/test_local.py"]),
                 ("Hindi and Urdu captions in Roman letters", ["tests/test_roman.py"]),
                 ("connecting YouTube, Instagram and TikTok", ["tests/test_connect.py"]),
