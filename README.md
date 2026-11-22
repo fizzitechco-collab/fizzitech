@@ -47,12 +47,12 @@ python -m studio.server
 The first start downloads the speech model by itself (about 480 MB, once).
 
 Open http://127.0.0.1:8765. There is no sign-in: it opens straight into the dashboard. Go to **Settings, AI**, choose
-your AI service, paste your key and press **Save and test** (see [Choose your AI](#choose-your-ai)).
+your AI service, paste your key and press **Save settings**, then **Test AI connection** (see [Choose your AI](#choose-your-ai)).
 
 ## Choose your AI
 
 PeakCut needs a chat model that can return JSON. The easy way is in the dashboard: **Settings, AI**. Pick the
-service, paste your key, press **Find models** to choose from the service's own list, then **Save and test**. The
+service, paste your key, press **Find models** to choose from the service's own list, then **Save settings** and separately **Test AI connection**. The
 key is kept in the data folder on your machine and is never shown again.
 
 If you prefer a file (or run a server), the same three things can go in `.env`. What is saved in the dashboard wins:
@@ -89,7 +89,13 @@ PEAKCUT_AI_KEY=your-key-here
 - **Game-aware metadata:** selected ordinary gaming clips receive more relevant hashtags from the game's title (Minecraft, GTA, Fortnite and other recognized games). Existing custom GTA VI and Expedia campaign logic is unchanged.
 - **Auto resolution (up to 4K):** choose **Auto** in Make clips → Export quality, or Creator → Automatic live clip quality. Remote clips and live recordings fetch at most 2160p; the rendered export is chosen from the **actual downloaded source** (1080p → 1080p, 2160p → 2160p, 1440p → 1440p). Fixed 360p/720p/1080p formats retain their working download rules. Explicit 4K refuses lower-resolution sources. 4K exports use a native-size composition canvas and may use substantially more CPU, RAM, disk and time.
 - **HP Victus:** the included `SETUP-VICTUS-ONE-CLICK.bat` checks Python 3.11, FFmpeg, FFprobe, Deno, ngrok, the local virtual environment and light regressions; it does not overwrite `.env` or `data` and does not start two competing servers.
+- **Custom Campaigns — separate from GTA 6 clipping:** create, edit, activate/pause and delete named brand campaigns in a dedicated sidebar page. Each campaign can store a brand, a requirements brief, optional exact hook/description, hashtags and an informational rate. Choose an active campaign explicitly in **Make clips → Options**. Gemini uses the brief when scouting relevant transcript moments; campaign branding applies only to clips created with that selected campaign. If Gemini is unavailable, a branded campaign will NOT silently fall back to unrelated loudness-only highlights. Campaign deletion does not delete previously rendered clips, and old job snapshots are preserved even on retry. Use **View clips** to filter the library by a campaign; no auto-posting or payout tracking is triggered by campaign creation.
+- **Clip review & pacing:** clip cards show the AI's existing reason for selecting the moment and its campaign tag where applicable; Short (15–30s), Medium (30–60s) and Long (60–120s) buttons speed up setting clip durations without changing existing defaults or the caption pipeline.
 - **Settings key persistence fix:** AI service/model/key saving is separate from the provider connection test. Saves are verified against `data/ai.json`, and the Settings page explicitly shows where credentials are stored (or that the key came from `.env`). An invalid model or rejected key can still be saved; **Test AI connection** reports that error without deleting the saved values. Connected-app credentials now accept rotating only a secret while keeping an ID already configured in `.env`; saves are verified in `data/apps.json`. Keys are private to each laptop/server and never committed to GitHub.
+
+SupoClip (https://github.com/FujiwaraChoki/supoclip) was reviewed for product ideas including clearer clip-selection explanations and quick length presets. Its source is under a **noncommercial license with restrictions on commercial reuse**, so no SupoClip code was copied into LegendClipper. These features are original implementation adapted to the existing PeakCut-based Python/JavaScript architecture. Advanced video editing/B-roll, analytics and automatic social performance sync were NOT imported in this update.
+
+Run the offline regressions on Windows with `.\\.venv\\Scripts\\python.exe tests\\test_custom_campaigns.py` and the existing complete `tests\\run.py` suite. This update is on branch `legend/facecam-preview-audio-repair` until tested/merged; actual Gemini relevance and source-based 4K renders still require real-world checking.
 
 Set `PEAKCUT_SMART_AUDIO=0` in `.env` to disable short-section audio scanning and use the previous full-audio workflow. The source format code was extended for Auto/4K without changing the fixed-quality 360p/720p/1080p selection rules.
 
