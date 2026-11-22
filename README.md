@@ -87,8 +87,12 @@ PEAKCUT_AI_KEY=your-key-here
 - **Smart early-stop audio scanning:** for 1–10 requested clips in a recording longer than three minutes, download small audio sections as needed and stop searching when the requested number of strong clips has been selected. If fewer strong moments exist, it continues searching the available range. If section downloading is unavailable, it falls back to the existing full-audio download method.
 - **MAX mode:** scan the complete selected recording, capped at up to 100 clips by the dashboard.
 - **Game-aware metadata:** selected ordinary gaming clips receive more relevant hashtags from the game's title (Minecraft, GTA, Fortnite and other recognized games). Existing custom GTA VI and Expedia campaign logic is unchanged.
+- **Auto resolution (up to 4K):** choose **Auto** in Make clips → Export quality, or Creator → Automatic live clip quality. Remote clips and live recordings fetch at most 2160p; the rendered export is chosen from the **actual downloaded source** (1080p → 1080p, 2160p → 2160p, 1440p → 1440p). Fixed 360p/720p/1080p formats retain their working download rules. Explicit 4K refuses lower-resolution sources. 4K exports use a native-size composition canvas and may use substantially more CPU, RAM, disk and time.
+- **HP Victus:** the included `SETUP-VICTUS-ONE-CLICK.bat` checks Python 3.11, FFmpeg, FFprobe, Deno, ngrok, the local virtual environment and light regressions; it does not overwrite `.env` or `data` and does not start two competing servers.
 
-Set `PEAKCUT_SMART_AUDIO=0` in `.env` to disable short-section audio scanning and use the previous full-audio workflow. The existing video-segment downloader is unchanged.
+Set `PEAKCUT_SMART_AUDIO=0` in `.env` to disable short-section audio scanning and use the previous full-audio workflow. The source format code was extended for Auto/4K without changing the fixed-quality 360p/720p/1080p selection rules.
+
+For Windows upgrades on both laptops, switch/pull `legend/facecam-preview-audio-repair` (this change is in the feature branch until PR #1 is merged). On the Victus run `SETUP-VICTUS-ONE-CLICK.bat` from the project folder **after updating Git**. If the laptop has only an old ZIP copy without `.git`, clone the repository in a new folder, then transfer your private `.env`, `data` and launcher while the old app is stopped. Do not run the same ngrok reserved domain from two laptops at once.
 
 ## Settings
 
