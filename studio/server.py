@@ -980,6 +980,21 @@ def legend_stop_video_during_audio(jid: str):
     return {"ok": True, "status": result["status"], "stage": result.get("stage", "")}
 
 
+@app.put("/api/jobs/{jid}/clips/{cid}/text")
+def save_clip_post_text(jid: str, cid: str, body: dict = Body(...)):
+    """Save title, description and hashtags without rerendering. Ownership checked."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "No such clip")
+    _throttle("cliptext:" + ctx.uid(), 120, 600)
+    try:
+        jobs.save_post_text(job, clip, body)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+    return jobs.public(job)
+
+
 @app.post("/api/jobs/{jid}/clips/{cid}/render")
 def rerender(jid: str, cid: str, body: dict = Body(...)):
     job = _job_or_404(jid)
