@@ -318,7 +318,18 @@ def retry(jid):
     source = dict(old["source"])
     if source.get("type") == "file" and not Path(source.get("path") or "").is_file():
         raise ValueError("Original uploaded video is missing. Upload the file again.")
-    new = create(source, dict(old["options"]), enqueue=False, creator=old.get("creator"))
+    # An older campaign job keeps its original snapshot even when the
+    # campaign is later edited, paused or deleted. Retrying the source must
+    # not silently replace its original brand brief or reject a deleted ID.
+    old_snapshot = old.get("custom_campaign")
+    options = dict(old["options"])
+    if old_snapshot:
+        options.pop("custom_campaign_id", None)
+    new = create(source, options, enqueue=False, creator=old.get("creator"))
+    if old_snapshot:
+        new["custom_campaign"] = dict(old_snapshot)
+        new["options"]["custom_campaign_id"] = old_snapshot["id"]
+        save(new)
     if source.get("type") == "file":
         original = Path(source["path"])
         new_path = Path(new["dir"]) / ("source" + original.suffix)
