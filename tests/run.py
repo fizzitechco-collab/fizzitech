@@ -50,6 +50,7 @@ def main() -> int:
                 ("queue under load", ["tests/test_load_queue.py", str(ROOT)]),
                 ("Windows job saving and download progress", ["tests/test_job_save_windows.py"]),
                 ("smart audio scan and facecam preview", ["tests/test_smart_audio.py"]),
+                ("Auto 4K source and live quality", ["tests/test_source_quality.py"]),
                 ("deleting and bulk actions", ["tests/test_delete.py"]),
                 ("big uploads in pieces", ["tests/test_upload_parts.py", BASE]),
                 ("AI services", ["tests/test_ai.py"]),
