@@ -85,7 +85,7 @@ def _clean(body: dict, previous: dict | None = None) -> dict:
     for key in _FIELDS:
         if key not in body and previous is not None:
             continue
-        value = body.get(key, "" if key != "hashtags" else [])
+        value = body.get(key, "active" if key == "status" else ([] if key == "hashtags" else ""))
         if key in _LIMITS:
             value = str(value or "").strip()
             if len(value) > _LIMITS[key]:
