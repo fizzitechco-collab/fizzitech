@@ -155,6 +155,11 @@ if errorlevel 1 (
   echo [ERROR] Smart audio and facecam regression check failed.
   goto :failed
 )
+".venv\Scripts\python.exe" tests\test_keys_persistence.py
+if errorlevel 1 (
+  echo [ERROR] AI and app key persistence regression test failed.
+  goto :failed
+)
 where nvidia-smi >nul 2>&1
 if not errorlevel 1 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 
