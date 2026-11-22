@@ -2782,8 +2782,10 @@ function drawClipDlg(full) {
           <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" value="${c.end}"></label></div>
         <h3>Post text</h3>
         <label class="f">Title<input data-f="title" value="${esc(c.title)}"></label>
-        <label class="f">Description<textarea data-f="description" rows="2">${esc(c.description)}</textarea></label>
-        <button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button>
+        <label class="f">Description<textarea data-f="description" rows="3" maxlength="2000">${esc(c.description || "")}</textarea></label>
+        <label class="f">Hashtags<input data-f="hashtags" value="${esc((c.hashtags || []).join(" "))}" placeholder="minecraft funny clutch"></label>
+        <div class="row"><button class="btn primary" data-act="saveposttext" ${c.status === "done" && !c.campaign_review_required && ["gaming","irl"].includes(j.options?.clip_mode || "gaming") ? "" : "disabled"}>${ic("check")}Save post text only</button><button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button></div>
+        <p class="help">Save post text edits title, description and hashtags without rendering again. Big text, video layout or timing edits still require re-make. Protected campaign copy must be reviewed via re-make.</p>
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
         ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
@@ -2799,6 +2801,11 @@ function drawClipDlg(full) {
 }
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+
+function clipPostText() {
+  const v = k => $("#clipdlg [data-f='"+k+"']")?.value || "";
+  return {title:v("title"), description:v("description"), hashtags:v("hashtags").split(/\s+/).map(h=>h.replace(/^#+/,"")).filter(Boolean)};
+}
 
 /* ============================================================ render + polling */
 function render() {
@@ -3157,6 +3164,16 @@ document.addEventListener("click", async e => {
     if (a === "accremove") {
       if (!await ask("Disconnect this account?", "Posts still waiting for it will fail.", "Disconnect", true)) return;
       await api(`/api/accounts/${d.id}`, {method:"DELETE"}); await tick(); return drawSettings();
+    }
+    if (a === "saveposttext") {
+      b.disabled = true;
+      try {
+        const updated = await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, clipPostText(), "PUT");
+        const ix = S.jobs.findIndex(j => j.id === updated.id);
+        if (ix >= 0) S.jobs[ix] = updated;
+        toast("Post text saved without rerendering the video.", "ok");
+        return;
+      } finally { b.disabled = false; }
     }
     if (a === "remake") {
       const body = {}; $$("#clipdlg [data-f]").forEach(i => body[i.dataset.f] = i.type === "number" ? Number(i.value) : i.value);
