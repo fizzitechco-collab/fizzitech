@@ -1164,6 +1164,32 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 .lc-star:hover,.lc-star:focus-visible{background:#F3F4F6!important;color:#101114!important;outline:2px solid #9EA3AB}
 .lc-star:hover ~ .lc-star{opacity:.9}
 </style>
+
+<style id="legend-custom-campaigns-v1">
+.lc-c-intro{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:12px 0 24px}
+.lc-c-intro h2{font-size:26px;font-weight:750;color:#f6f7fa}
+.lc-c-intro p{color:#b4bbc6;margin-top:5px;max-width:720px}
+.lc-campaign-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.lc-c-stat{background:#111419;border:1px solid #252932;border-radius:14px;padding:20px;display:grid;gap:8px}
+.lc-c-stat b{font-size:30px;line-height:1;color:#f8f9fb}.lc-c-stat small{color:#abb2bd}
+.lc-c-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px}
+.lc-c-card{border:1px solid #2a2f38;border-radius:16px;background:#12151b;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:315px}
+.lc-c-card h3{font-size:20px;color:#f5f7fa}.lc-c-top,.lc-c-meta,.lc-c-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lc-c-state{border-radius:50px;padding:3px 10px;font-weight:700;font-size:11px;background:#343434;color:#fff}
+.lc-c-state.active{background:#133521;color:#8ff5b0}.lc-c-state.paused{background:#302921;color:#f5d19a}
+.lc-c-muted{color:#969fae;font-size:12px}.lc-c-brand{color:#f4f5f7;font-size:12px;font-weight:650}
+.lc-c-brief{color:#b5bcc7;white-space:pre-wrap;max-height:92px;overflow:auto}
+.lc-c-preview{color:#c4cad4;font-size:12px}.lc-c-tags{display:flex;flex-wrap:wrap;gap:6px;min-height:22px}
+.lc-c-tag{font-size:11px;color:#d9dfec;background:#242934;border:1px solid #353b47;padding:3px 8px;border-radius:7px}
+.lc-c-meta{border-top:1px solid #272d35;padding-top:12px;color:#aeb7c5;font-size:12px;margin-top:auto}
+.lc-c-actions{justify-content:flex-start}.lc-c-actions .btn{min-height:34px}
+.lc-c-empty{border:1px dashed #363c49;border-radius:18px;background:#12161b;padding:52px 20px;text-align:center;display:grid;gap:10px;justify-items:center}
+.lc-c-empty h3{font-size:20px;color:#f5f6f8}.lc-c-empty p,.lc-c-footnote{color:#aeb6c1;font-size:12px}
+.lc-c-empty-icon svg{height:40px;width:40px;color:#e4e9f0}
+.lc-c-footnote{margin-top:24px}.lc-c-dialog{max-height:min(88vh,780px);overflow:auto}.lc-c-dialog textarea{min-height:78px;resize:vertical}
+.lc-c-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.lc-c-intro{align-items:start;flex-direction:column}.lc-campaign-summary,.lc-c-form-row{grid-template-columns:1fr}.lc-c-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <div class="app" id="app">
@@ -1190,6 +1216,7 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 <div class="pop menu" id="acctpop" role="menu" hidden></div>
 
 <script src="/assets/gradient-ascii.js"></script>
+<script src="/assets/campaigns.js"></script>
 <script>
 /* ============================================================ helpers */
 const $ = (s, r = document) => r.querySelector(s);
@@ -1601,6 +1628,7 @@ function moveInd() {
 function drawShell() {  const nav = (v, icon, label, extra = "") => `<button class="nav-item ${S.view === v ? "on" : ""}" data-act="go" data-v="${esc(v)}" title="${esc(label)}">${icon}<span class="label">${esc(label)}</span>${extra}</button>`;
   put($("#nav"), nav("overview", navIc("home", "overview"), "Home") +
     nav("auto-clipping", navIc("bolt", "auto-clipping"), "Auto Clipping") +
+    nav("campaigns", navIc("folder", "campaigns"), "Custom Campaigns") +
     nav("library", navIc("film", "library"), "All videos", (() => { const w = S.jobs.filter(j => ["queued", "running"].includes(j.status)).length;
       return w ? `<span class="working" title="${w} working now"><i></i>${w} working</span>` : S.jobs.length ? `<span class="count">${S.jobs.length}</span>` : ""; })()) +
     `<h4><span>Creators</span></h4>` +
@@ -1618,7 +1646,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
       <button class="icon-btn bell" data-act="bell" title="Notifications" aria-label="Notifications${S.status.unread ? `, ${S.status.unread} new` : ""}" aria-haspopup="dialog">${ic("bell")}${S.status.unread ? `<span class="dotn">${S.status.unread > 9 ? "9+" : S.status.unread}</span>` : ""}</button></div>` : ""));
   const c = creator();
   const recording = S.creators.filter(x => x.live_job).length;
-  let title = {overview:"Home", library:"All videos", "auto-clipping":"GTA 6 Auto Clipping", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
+  let title = {overview:"Home", library:"All videos", "auto-clipping":"GTA 6 Auto Clipping", campaigns:"Custom Campaigns", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
   if (S.view === "usage") sub = "What the AI has been used for.";
   if (S.view === "overview") sub = `${greeting()}. ${S.creators.length} creator${S.creators.length === 1 ? "" : "s"}${recording ? `, ${recording} recording now` : ""}.`;
   if (S.view === "library") sub = "Every video and recording, across all creators.";
@@ -1653,7 +1681,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
   put($("#title"), `<span>${esc(title)}</span>`); put($("#subtitle"), subHtml ?? esc(sub)); put($("#actions"), act);
 }
 
-const ROUTES = {overview: "", library: "videos", "auto-clipping":"auto-clipping", settings: "settings", usage: "usage"};
+const ROUTES = {overview: "", library: "videos", "auto-clipping":"auto-clipping", campaigns:"campaigns", settings: "settings", usage: "usage"};
 function pathFor(v, tab) {
   if (v.startsWith("c:")) return `/app/creators/${encodeURIComponent(v.slice(2))}${tab && tab !== "clips" ? "/" + tab : ""}`;
   if (v === "settings") return "/app/settings" + (tab ? "/" + tab : "");
@@ -1686,6 +1714,7 @@ function go(v, tab, fromHistory) {
   if (v === "overview") view.innerHTML = `<div id="ov"></div>`;
   else if (v === "library") view.innerHTML = `<div id="add"></div><div id="jobs"></div>`;
   else if (v === "auto-clipping") view.innerHTML = `<div id="gta-auto"></div>`;
+  else if (v === "campaigns") view.innerHTML = `<div id="campaigns-page"></div>`;
   else if (v === "settings") view.innerHTML = `<div id="sform"></div>`;
   else if (v === "usage") { view.innerHTML = `<div id="usage"></div>`; loadUsage(); }
   else view.innerHTML = `<div id="stream"></div><div id="cbody"></div>`;   // the live player stays put across tabs: no restart, no rebuffer
@@ -1693,6 +1722,7 @@ function go(v, tab, fromHistory) {
   if (v === "overview" && window.GradientASCII) { try { window._gaStop = GradientASCII($("#appAscii"), {colors: ["#ffb27a", "#ffffff", "#ffd2ae", "#ffe0c2", "#fff1e6"], shape: "horizon", lightMode: true, cellSize: 16, density: 0.8, glyphOpacity: 0.26, gradientOpacity: 0.32, glow: 0.06, grain: 0.06, mouseInteraction: false, clickEffect: "none"}); } catch {} }
   if (v === "settings") drawSettings();
   if (v === "auto-clipping") drawGtaAuto();
+  if (v === "campaigns") loadCampaigns().catch(e => { const el=$("#campaigns-page"); if(el) el.textContent="Could not load campaigns: "+e.message; });
   if (v.startsWith("c:")) setTab(S.ctab);
   $("#main").scrollTo(0, 0); render();
   if (v === "overview") loadOverview();
@@ -1741,6 +1771,13 @@ function drawAdd(variant) {
           <strong>GTA VI clipping</strong><p>GTA 6 moments only. For mixed-game streams select NO; the AI will look for explicit GTA 6 context and reject unrelated games. Video footage must be checked before publishing because AI mainly reads audio/transcript.</p>
           <label class="f">Is this stream exclusively GTA 6?<select id="o_gta6_only_live">${opts({no:"NO — mixed games may appear; clip ONLY GTA 6",yes:"YES — reject streams that aren't GTA 6-only"},localStorage.getItem("legend_gta6_only_live") || "no")}</select></label>
         </div>
+      </div>
+      <div class="ob wide"><div class="ot">Custom campaign (optional)</div>
+        <label class="f">Campaign for this video<select id="o_custom_campaign">
+          <option value="">None — regular clipping</option>
+          ${(S.campaigns || []).filter(x => x.status === "active").map(x => `<option value="${esc(x.id)}" ${localStorage.getItem("legend_custom_campaign_last") === x.id ? "selected" : ""}>${esc(x.name)}${x.brand ? " · " + esc(x.brand) : ""}</option>`).join("")}
+        </select></label>
+        <p class="help">Apply this campaign's optional hook, description and hashtags to NEW clips only. Separate from GTA 6. <button type="button" class="btn sm" data-act="go" data-v="campaigns">Manage Campaigns</button></p>
       </div>
       <div class="ob"><div class="ot">Caption style</div>${choice("o_style", Object.entries(S.status.styles).map(([k, v]) => ({v:k, label:v, prev:capPrev(k)})), optionSelectedValue("o_style", c?.style ?? "bounce"))}</div>
       <div class="ob"><div class="ot">Layout</div>${choice("o_layout", Object.entries(S.status.layouts).map(([k, v]) => ({v:k, label:LAYOUT_SHORT[k] || v, title:v, prev:`<span class="lay-prev ${esc(k)}"><span class="ph"><i></i></span></span>`})), optionSelectedValue("o_layout", c?.layout ?? "auto"))}</div>
@@ -1878,7 +1915,8 @@ function jobOptions() {
   if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error('Enter a clip count between 1 and 100, or choose MAX.');
   const shortest = n("#o_min") ?? 15, longest = n("#o_maxlen") ?? 60;
   if (!Number.isFinite(shortest) || !Number.isFinite(longest) || shortest < 5 || longest > 180 || shortest >= longest) throw new Error('Shortest must be at least 5s and less than Longest (up to 180s).');
-  const o = {max_clips:count, min_len:shortest, max_len:longest, style:$("#o_style").value, layout:$("#o_layout").value, quality:n("#o_quality"), analysis_mode:$("#o_analysis_mode")?.value || "fast", caption_active:$("#o_caption_active")?.value || "6BD7FF", hook_box:$("#o_hook_box")?.value || "FFFFFF", hook_text:$("#o_hook_text")?.value || "14100E", clip_mode:$("#o_clip_mode")?.value || "gaming", gta6_only_live:$("#o_gta6_only_live")?.value === "yes", facecam_review:$("#o_facecam_review")?.checked || false, caption_language:$("#o_caption_language")?.value || "auto", facecam_position:$("#o_facecam_position")?.value || "auto", facecam_size:$("#o_facecam_size")?.value || "medium", facecam_rect:$("#o_facecam_rect")?.value || "", scan_entire:localStorage.getItem("legend_clip_limit_mode") === "max"};
+  const o = {max_clips:count, min_len:shortest, max_len:longest, style:$("#o_style").value, layout:$("#o_layout").value, quality:n("#o_quality"), analysis_mode:$("#o_analysis_mode")?.value || "fast", caption_active:$("#o_caption_active")?.value || "6BD7FF", hook_box:$("#o_hook_box")?.value || "FFFFFF", hook_text:$("#o_hook_text")?.value || "14100E", clip_mode:$("#o_clip_mode")?.value || "gaming", gta6_only_live:$("#o_gta6_only_live")?.value === "yes", facecam_review:$("#o_facecam_review")?.checked || false, caption_language:$("#o_caption_language")?.value || "auto", facecam_position:$("#o_facecam_position")?.value || "auto", facecam_size:$("#o_facecam_size")?.value || "medium", facecam_rect:$("#o_facecam_rect")?.value || "", custom_campaign_id:$("#o_custom_campaign")?.value || "", scan_entire:localStorage.getItem("legend_clip_limit_mode") === "max"};
+  if (o.custom_campaign_id && o.clip_mode === "gta6") throw new Error("Custom Campaigns work with Gaming or IRL, not the GTA 6 preset. Choose Gaming or IRL.");
   try {
     localStorage.setItem("peakcut_facecam_rect", o.facecam_rect);
     localStorage.setItem("peakcut_facecam_position", o.facecam_position);
@@ -2811,6 +2849,7 @@ function clipPostText() {
 /* ============================================================ render + polling */
 function render() {
   drawShell(); drawJobs(); drawStream(); drawSelBar();
+  if (S.view === "campaigns") drawCampaigns();
   if (S.view === "overview") drawOverview();
   if ($("#clog")) drawLog();
   if (D.jid) drawClipDlg(false);
@@ -3228,6 +3267,7 @@ $("#main").addEventListener("scroll", () => $(".topbar").classList.toggle("stuck
   if (q.get("verified")) { history.replaceState(null, "", location.pathname); setTimeout(() => toast("Email confirmed. You're ready to clip.", "ok"), 300); }
   if (q.get("verify_error")) { history.replaceState(null, "", location.pathname); setTimeout(() => toast(q.get("verify_error"), "bad"), 300); }
   if (location.pathname.startsWith("/app/")) { const [v, tab] = fromPath(location.pathname); S.view = v; S.ctab = tab; }  // the address decides, before anything loads
+  try { await loadCampaigns(); } catch (err) { S.campaigns=[]; console.warn("Campaigns failed to load:", err.message); }
   await tick();
   { const [v, tab] = location.pathname.startsWith("/app/") ? fromPath(location.pathname) : ["overview", "clips"]; go(v, tab, true); remember(S.view, S.ctab, "replace"); }
   try {  // a link pasted on the home page before signing up
