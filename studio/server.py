@@ -20,6 +20,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from . import admin as admins
+from . import custom_campaigns
 from . import account, load
 from . import (accounts, ai, alerts, auth, brain, config, creators, ctx, db, jobs, live, media, posting,
                profiles, render, safe, transcribe, usage)
@@ -667,6 +668,57 @@ def sync(v: str = ""):
     from . import notices
     return {"v": token, "jobs": [jobs.public(j) for j in jobs.list_jobs()], "creators": _creator_rows(),
             "accounts": accounts.list_accounts(), "ai": usage.brief(), "unread": notices.unread()}
+
+
+# LEGEND_CUSTOM_CAMPAIGNS_V1: owned, per-user campaign definitions.
+# This is NOT the existing GTA VI/Expedia clip-mode preset.
+@app.get("/api/custom-campaigns")
+def list_custom_campaigns():
+    try:
+        return custom_campaigns.all_campaigns()
+    except ValueError as e:
+        raise HTTPException(500, str(e))
+
+
+@app.post("/api/custom-campaigns")
+def create_custom_campaign(body: dict = Body(...)):
+    _need_verified()
+    _throttle("campaigncreate:" + ctx.uid(), 30, 600)
+    try:
+        return custom_campaigns.create(body)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save this campaign. Check server disk space and permissions.")
+
+
+@app.put("/api/custom-campaigns/{cid}")
+def update_custom_campaign(cid: str, body: dict = Body(...)):
+    _need_verified()
+    _throttle("campaignupdate:" + ctx.uid(), 100, 600)
+    try:
+        return custom_campaigns.update(cid, body)
+    except KeyError:
+        raise HTTPException(404, "Campaign not found.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save this campaign. Check server disk space and permissions.")
+
+
+@app.delete("/api/custom-campaigns/{cid}")
+def delete_custom_campaign(cid: str):
+    _need_verified()
+    _throttle("campaigndelete:" + ctx.uid(), 30, 600)
+    try:
+        custom_campaigns.delete(cid)
+    except KeyError:
+        raise HTTPException(404, "Campaign not found.")
+    except ValueError as e:
+        raise HTTPException(500, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not delete this campaign. Check server disk space and permissions.")
+    return {"ok": True}
 
 
 @app.get("/api/jobs")
