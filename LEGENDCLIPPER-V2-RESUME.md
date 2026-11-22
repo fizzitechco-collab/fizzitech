@@ -27,6 +27,12 @@ Updated: 2026-11-22
 - AI Settings has separate `Save settings` and `Test AI connection` actions; persisted `data/ai.json` is verified on readback.
 - Social app credentials saving supports rotation with existing .env app ID; persisted `data/apps.json` verified; secret values masked in UI.
 - Errors on failed credential persistence are displayed rather than silently treated as a successful save.
+- Original PeakCut `main` inspected on 2026-11-22: it has creator-level campaign rate/footer and upstream Big text / Description / post-copy edits, but no dedicated Custom Campaigns manager. The user correctly distinguished GTA VI clipping from a true Campaigns dashboard.
+- Dedicated **Custom Campaigns** shipped on this feature branch (not a GTA VI mode): sidebar `/app/campaigns`, create/edit/activate/pause/delete per-user campaign definitions, brand brief, optional fixed hook/description/hashtags and informational rate, optional selection in Make clips -> Options (Gaming or IRL). New video jobs save immutable snapshots so editing/deleting a campaign doesn't alter old jobs. Campaign-aware Gemini selection uses the brief, refusing unrelated loudness fallback when AI fails. A campaign badge and selection reason appear on clip cards. Campaign-specific video filtering works through View clips -> All videos. Branded campaign jobs are NEVER queued for auto-posting by inheriting creator autopost; manual review/publishing is required.
+- Original safe UI improvements inspired by reviewing SupoClip: short/medium/long duration shortcut buttons and more visible clip-selection reason on cards; no SupoClip code copied because its noncommercial source license restricts commercial reuse. Advanced editor/B-roll/analytics were not imported.
+- Current campaign selection is deliberately **per-video and opt-in**, not permanent (and Watch LIVE URL campaign clips are out of scope for this version). Normal GTA VI/Expedia clipping stays separate and unchanged.
+- Regression test `tests/test_custom_campaigns.py` checks per-user isolation, persistence, AI prompt constraints, safe fallback and no auto-post. Added `.github/workflows/legendclipper-regression.yml` with isolated tests, including key persistence, Auto 4K and JS syntax.
+
 
 ## Latest concrete Windows verification
 - Previously, full offline suite: 390 / 390 checks passed (prior stage).
@@ -35,9 +41,12 @@ Updated: 2026-11-22
 - `python tests\test_keys_persistence.py` succeeded: ALL PASSED (18 key save checks).
 - These are mock/offline credential tests: they do NOT prove the user's real Gemini API key/model responds, or that a real 4K video completes a render/upload.
 - User's actual Gemini connection test remains separate: go Settings > AI > Save settings, then Test AI connection.
+- NEW 2026-11-22 GitHub Actions workflow runs **45056624172** and **45056623885**: successful Python compilation, Custom Campaigns offline tests, upstream metadata tests, key persistence tests, source-quality tests and JS syntax checks. These are genuine GitHub-hosted test results, NOT a Windows end-to-end recording/upload test.
+- User's main Windows PC has NOT yet pulled the latest Custom Campaigns commits after the earlier key-saving commit; ask them to pull/test and restart before expecting the new UI. Sister's Victus is still old.
+
 
 ## Deferred work
-- Original upstream PeakCut's newer Campaigns feature and full feature sync remain **deferred** by explicit user instruction; do not assume already integrated.
+- Original upstream PeakCut has no standalone Custom Campaigns manager in its current `main`; the independent one was implemented above. Further upstream sync (other modules, complete editor/B-roll/analytics) is still pending; do not assume full PeakCut/SupoClip feature parity.
 - Broader Settings UI polish may be addressed in a later fix. AI key saving logic itself was fixed and 18 offline tests passed.
 - Sister's HP Victus laptop remains on its **old version**; user deferred updating it. When asked `Victus update`, prepare upgrade keeping private config, recordings, accounts, and data. Do not suggest it was already upgraded.
 - Verify current issues against active branch; do not revive stale old `!clip` bugs.
@@ -49,7 +58,9 @@ Updated: 2026-11-22
 4. `git pull --ff-only origin legend/facecam-preview-audio-repair`
 5. `.\.venv\Scripts\python.exe -m compileall -q studio`
 6. `.\.venv\Scripts\python.exe tests\test_keys_persistence.py`
-7. `.\.venv\Scripts\python.exe -m studio.server`
+7. `.\.venv\Scripts\python.exe tests\test_custom_campaigns.py`
+8. `.\.venv\Scripts\python.exe tests\run.py` (optional full test suite)
+9. `.\.venv\Scripts\python.exe -m studio.server`
 The server command runs in the foreground: don't put it first in a multiline batch.
 
 ## Security
