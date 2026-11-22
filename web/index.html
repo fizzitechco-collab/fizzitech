@@ -2909,7 +2909,8 @@ document.addEventListener("click", async e => {
           throw new Error("Could not verify that AI settings were saved on this server.");
         }
         S.ai = verified;
-        S.status = await api("/api/status"); drawShell(); await drawSettings();
+        try { S.status = await api("/api/status"); drawShell(); } catch (_) { /* save was already verified */ }
+        await drawSettings();
         toast("AI settings SAVED on this server. Use Test AI connection to check the model/key.", "ok");
       } finally { b.disabled = false; }
       return;
