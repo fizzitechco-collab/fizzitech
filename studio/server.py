@@ -1375,6 +1375,8 @@ def ai_put(request: Request, body: dict = Body(...)):
                       None if k is None or (isinstance(k, str) and not k.strip() and not body.get("remove_key")) else str(k))
     except (ValueError, TypeError) as e:
         raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save the AI key to the data folder. Check folder permissions and disk space.")
     usage.forget_all()
     ctx.bump()
     return out
@@ -1550,6 +1552,8 @@ def apps_put(request: Request, body: dict = Body(...)):
         return accounts.save_app(str(body.get("platform", "")), body.get("client_id"), body.get("client_secret"))
     except ValueError as e:
         raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save the app credentials to the data folder. Check permissions and disk space.")
 
 
 @app.post("/api/posts")
