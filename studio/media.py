@@ -109,8 +109,9 @@ def _ydl(opts):
 
 
 def _video_format(height):
-    # LEGEND_SOURCE1080_MEDIA_V1. Never fall through to an UNBOUNDED format.
-    cap = min(1080, max(144, int(height)))
+    """Source-quality cap: Auto chooses best available up to 4K, never unbounded."""
+    requested = int(height)
+    cap = 2160 if requested == 0 else min(2160, max(144, requested))
     return (f"bv*[height<={cap}][vcodec^=avc1]+ba[ext=m4a]/"
             f"bv*[height<={cap}]+ba/"
             f"b[height<={cap}]")
