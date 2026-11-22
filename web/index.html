@@ -2483,6 +2483,8 @@ function drawCreatorForm() {
     <div class="card"><h2>Clips</h2><p class="help">How this creator's clips look.</p>
       <div class="fields"><label class="f">Caption style<select data-k="style">${opts(S.status.styles, c.style)}</select></label>
         <label class="f">Layout<select data-k="layout">${opts(S.status.layouts, c.layout)}</select></label>
+        <label class="f span">Big text on every clip (optional)<input data-k="overlay_hook_text" maxlength="60" value="${esc(c.overlay_hook_text || "")}" placeholder="Leave blank to let AI write a unique hook"><small class="sub">An original creator-wide headline. This does not change the existing Hook text COLOR. Protected campaign rules still take priority.</small></label>
+        <label class="f span">Description for every clip (optional)<textarea data-k="description_text" rows="3" maxlength="2000" placeholder="Leave blank for AI-generated descriptions">${esc(c.description_text || "")}</textarea><small class="sub">Preserves your wording, mentions, links and hashtags for ordinary gaming/IRL clips. Leave blank for automatic metadata.</small></label>
         <label class="f">Default webcam corner<select data-k="facecam_position">${opts({auto:"Auto detect",top_left:"Top left",top_right:"Top right",bottom_left:"Bottom left",bottom_right:"Bottom right"},c.facecam_position || "auto")}</select></label>
         <label class="f">Default webcam size<select data-k="facecam_size">${opts({small:"Small",medium:"Medium",large:"Large"},c.facecam_size || "medium")}</select></label>
         <label class="f">Exact webcam region (optional x,y,w,h)<input data-k="facecam_rect" placeholder="0.02,0.03,0.36,0.36" value="${esc(c.facecam_rect || "")}"></label>
