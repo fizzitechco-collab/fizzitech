@@ -1186,7 +1186,8 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 .lc-c-empty{border:1px dashed #363c49;border-radius:18px;background:#12161b;padding:52px 20px;text-align:center;display:grid;gap:10px;justify-items:center}
 .lc-c-empty h3{font-size:20px;color:#f5f6f8}.lc-c-empty p,.lc-c-footnote{color:#aeb6c1;font-size:12px}
 .lc-c-empty-icon svg{height:40px;width:40px;color:#e4e9f0}
-.lc-c-footnote{margin-top:24px}.lc-c-dialog{max-height:min(88vh,780px);overflow:auto}.lc-c-dialog textarea{min-height:78px;resize:vertical}
+.lc-c-footnote{margin-top:24px}
+.lc-why{color:#aeb7c3;font-size:12px;line-height:1.45;display:flex;gap:5px;align-items:flex-start;margin:2px 0 4px}.lc-why svg{width:13px;height:13px;margin-top:2px;flex:none}.lc-c-tag svg{width:12px;height:12px;margin-right:5px;vertical-align:-2px}.lc-c-dialog{max-height:min(88vh,780px);overflow:auto}.lc-c-dialog textarea{min-height:78px;resize:vertical}
 .lc-c-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:700px){.lc-c-intro{align-items:start;flex-direction:column}.lc-campaign-summary,.lc-c-form-row{grid-template-columns:1fr}.lc-c-grid{grid-template-columns:1fr}}
 </style>
@@ -2330,7 +2331,8 @@ function clipHtml(j, c) {
     <div class="clip-body">
       <div class="hook">${esc(c.hook || "Untitled clip")}</div>
       <div class="ttl">${esc(c.title)}</div>
-
+      ${c.custom_campaign_name ? `<div class="lc-c-tags"><span class="lc-c-tag" title="Custom campaign">${ic("folder")}${esc(c.custom_campaign_name)}</span></div>` : ""}
+      ${c.reason ? `<p class="lc-why" title="Why this moment was selected">${ic("bulb")}${esc(c.reason)}</p>` : ""}
       ${postPills(c) ? `<div class="row" style="gap:4px">${postPills(c)}</div>` : ""}
       ${c.visual_score != null ? `<div class="lc-visual-info" title="Deep mode motion score, not game recognition">Visual activity ${Math.round(Number(c.visual_score))}/100 · ${Number(c.visual_cuts)||0} scene cuts</div>` : ""}
       ${ratingControls(j,c)}
