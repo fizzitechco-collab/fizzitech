@@ -496,6 +496,74 @@ def delete(jid):
     return bool(job)
 
 
+def clean_hashtags(value) -> list:
+    """Accept manually edited tags without allowing HTML, separators or excess length."""
+    if isinstance(value, str):
+        value = value.split()
+    if not isinstance(value, list):
+        raise ValueError("Hashtags must be words separated by spaces.")
+    tags = []
+    for entry in value[:50]:
+        if not isinstance(entry, (str, int)):
+            continue
+        tag = re.sub(r"[^A-Za-z0-9_]", "", str(entry).lstrip("#"))[:30]
+        if tag and tag.lower() not in {x.lower() for x in tags}:
+            tags.append(tag)
+        if len(tags) >= 8:
+            break
+    return tags
+
+
+def save_post_text(job, clip, changes: dict):
+    """Save clip publishing copy without touching/re-encoding the video.
+    
+    Protected GTA VI/Expedia campaigns still use the existing review/re-make path.
+    """
+    if clip.get("status") != "done":
+        raise ValueError("Wait until the clip finishes before changing its post text.")
+    if clip.get("campaign_review_required") or job.get("options", {}).get("clip_mode") not in ("gaming", "irl"):
+        raise ValueError("Protected campaign copy must be updated through Save and re-make clip.")
+    if not isinstance(changes, dict):
+        raise ValueError("Provide the post text fields.")
+    new = {}
+    if "title" in changes:
+        new["title"] = str(changes["title"] or "")[:100].strip()
+    if "description" in changes:
+        new["description"] = creators.clean_description_text(changes["description"])
+    if "hashtags" in changes:
+        new["hashtags"] = clean_hashtags(changes["hashtags"])
+    # The automatic description may already have a generated hashtag line.
+    # When only the hashtag selection changed, update that line too.
+    if clip.get("hashtags_in_description") and not clip.get("fixed_description") and new:
+        changed_description = "description" in new and new["description"] != clip.get("description", "")
+        if changed_description:
+            # A human's edited copy is authoritative: do not rewrite it.
+            new["fixed_description"] = True
+            new["hashtags_in_description"] = False
+        elif "hashtags" in new:
+            text = str(clip.get("description") or "")
+            old_line = " ".join("#" + str(tag).lstrip("#") for tag in clip.get("hashtags", []))
+            if old_line and text.endswith(old_line):
+                text = text[:-len(old_line)].rstrip()
+            fresh_line = " ".join("#" + tag for tag in new["hashtags"])
+            new["description"] = (text + ("\n\n" if text and fresh_line else "") + fresh_line)[:2000]
+    if not new:
+        raise ValueError("Choose at least one post text field.")
+    with _lock:
+        clip.update(new)
+        save(job)
+    side = Path(job["dir"]) / "clips" / f"{clip['id']}.json"
+    try:
+        if side.is_file():
+            previous = json.loads(side.read_text(encoding="utf-8"))
+            if not isinstance(previous, dict):
+                previous = {}
+            side.write_text(json.dumps({**previous, **new}, indent=1), encoding="utf-8")
+    except (OSError, ValueError):
+        pass
+    return clip
+
+
 def request_render(jid, cid, changes: dict):
     job = _jobs[jid]
     clip = next(c for c in job["clips"] if c["id"] == cid)
