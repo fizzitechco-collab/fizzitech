@@ -995,6 +995,29 @@ def save_clip_post_text(jid: str, cid: str, body: dict = Body(...)):
     return jobs.public(job)
 
 
+@app.post("/api/jobs/{jid}/clips/{cid}/write")
+def rewrite_clip_post_text(jid: str, cid: str):
+    """AI drafts post copy for review; never saves or publishes it automatically."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "No such clip")
+    if clip.get("status") != "done":
+        raise HTTPException(409, "The clip must be finished before rewriting post text.")
+    if clip.get("campaign_review_required") or job.get("options", {}).get("clip_mode") not in ("gaming", "irl"):
+        raise HTTPException(409, "Protected campaign copy cannot be rewritten automatically.")
+    _throttle("clipwrite:" + ctx.uid(), 15, 600)
+    usage.set_context(job.get("creator"), job.get("title") or "")
+    try:
+        return brain.rewrite_post_text(jobs.spoken_in(job, clip),
+                                       job.get("title") or "", job.get("uploader") or "",
+                                       game=job.get("game") or None)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+
+
 @app.post("/api/jobs/{jid}/clips/{cid}/render")
 def rerender(jid: str, cid: str, body: dict = Body(...)):
     job = _job_or_404(jid)
