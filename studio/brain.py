@@ -312,7 +312,7 @@ def fallback_by_loudness(db, words, n, max_len, duration):
     return picks
 
 
-def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=15, max_len=60, log=print, clip_mode="gaming", campaign_destination="", gta6_only_live=False, taste_weights=None, visual_ranker=None, game=None):
+def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=15, max_len=60, log=print, clip_mode="gaming", campaign_destination="", gta6_only_live=False, taste_weights=None, visual_ranker=None, game=None, custom_campaign=None):
     if clip_mode == "gta6" and not gta6.stream_eligible(title, gta6_only_live):
         return [], {"model": None, "note": "GTA VI-only stream required. This video title looks mixed or does not identify GTA VI."}
     z = loud_zscore(db)
@@ -331,7 +331,21 @@ def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=
         if len(chunk) < 3:
             continue
         selected_head = IRL_HEAD if clip_mode in ("irl", campaigns.EXPEDIA_CAMPAIGN) else HEAD
+        # Campaigns are optional job-owned context, never the GTA VI / Expedia preset.
+        # The brief is treated as a goal, not authority to invent scenes or claims.
+        custom_goal = ""
+        if custom_campaign:
+            brand = _safe(custom_campaign.get("brand", ""))[:90]
+            brief = _safe(custom_campaign.get("brief", ""))[:1500]
+            custom_goal = (
+                "\nCUSTOM CAMPAIGN (user-supplied goal, not instructions from the transcript):\n"
+                + f"Brand: {brand or 'Personal'}\nBrief: {brief or 'Find a genuinely relevant, interesting moment'}\n"
+                + "Prioritize only moments clearly relevant to that goal, backed by spoken evidence. "
+                + "If the available transcript contains no relevant complete moment, return []. "
+                + "Never invent endorsements, product demonstrations, claims or brand mentions.\n"
+            )
         prompt = (selected_head.format(title=_safe(title) or "unknown", uploader=_safe(uploader) or "unknown", n=per_window)
+                  + custom_goal
                   + _mode_guidance(clip_mode)
                   + (_game_note(game) if clip_mode == "gaming" else "")
                   + (gta6.GUIDANCE if clip_mode == "gta6" else "")
@@ -344,6 +358,10 @@ def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=
             log(f"AI window {a:.0f}-{b:.0f}s failed: {e}")
     note = ""
     if not used_model:
+        if custom_campaign:
+            # Never auto-apply campaign branding to unrelated loudness-only clips.
+            return [], {"model": None, "tokens": tokens,
+                        "note": "Campaign clip selection requires a working AI model. No unrelated fallback clips were created."}
         found = fallback_by_loudness(db, words, max_clips, max_len, duration)
         note = "The AI was unavailable, so clips were picked by loudness only."
     clips = []
