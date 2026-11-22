@@ -1094,10 +1094,18 @@ def delete_my_account(request: Request, body: dict = Body(...)):
 def media_file(jid: str, name: str, download: int = 0):
     if not re.fullmatch(r"[\w\-]+\.(mp4|jpg)", name):
         raise HTTPException(404)
-    f = Path(_job_or_404(jid)["dir"]) / "clips" / name
+    job = _job_or_404(jid)
+    f = Path(job["dir"]) / "clips" / name
     if not f.is_file():
         raise HTTPException(404)
-    return FileResponse(f, filename=name if download else None, headers={"Cache-Control": "private, max-age=300"})
+    # Preserve the stable stored clip filename: only change the name offered to
+    # the browser when a person explicitly downloads the MP4.
+    save_as = name
+    if download and name.endswith(".mp4"):
+        clip = next((c for c in job.get("clips", []) if c.get("file") == name), None)
+        if clip:
+            save_as = account.clip_title_name(clip, Path(name).stem) + ".mp4"
+    return FileResponse(f, filename=save_as if download else None, headers={"Cache-Control": "private, max-age=300"})
 
 
 # ================================================================ creators and live recording
