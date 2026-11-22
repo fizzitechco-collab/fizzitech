@@ -95,6 +95,18 @@ Set `PEAKCUT_SMART_AUDIO=0` in `.env` to disable short-section audio scanning an
 
 For Windows upgrades on both laptops, switch/pull `legend/facecam-preview-audio-repair` (this change is in the feature branch until PR #1 is merged). On the Victus run `SETUP-VICTUS-ONE-CLICK.bat` from the project folder **after updating Git**. If the laptop has only an old ZIP copy without `.git`, clone the repository in a new folder, then transfer your private `.env`, `data` and launcher while the old app is stopped. Do not run the same ngrok reserved domain from two laptops at once.
 
+## Selective upstream PeakCut sync (November 2026)
+
+This branch selectively integrates features from [PeakCut](https://github.com/haziqahmedqasmi/PeakCut) without replacing LegendClipper's known-working recording, selective video-segment downloads, AI provider/key settings, facecam preview, custom GTA VI/Expedia campaigns, or Auto up to 4K.
+
+- **Creator campaign text:** in Creator → Setup → Clips, optionally choose **Big text on every clip** and **Description for every clip**. Leave blank for the usual per-clip AI hook and description. Special GTA VI/Expedia campaign copy takes priority over these defaults. The new overlay headline is deliberately named `overlay_hook_text` because the existing `hook_text` value controls the overlay **color**.
+- **Post-text editing without re-encode:** open a finished normal Gaming/IRL clip and edit title, description or hashtags. **Save post text only** writes metadata without touching the encoded video; publishing uses the latest saved copy. Protected campaign text still requires the existing review/re-make flow.
+- **Write again with AI:** request an optional draft title/description/hashtags from the clip's spoken transcript; edit/review before saving. It uses the currently configured AI provider and never posts or saves automatically. If speech text is missing, manually edit instead.
+- **Friendly download filenames:** individual MP4s and ZIP entries use a safe clip-title name. Actual stored filenames remain stable; posting/preview links are unchanged.
+- **Avoid duplicate hashtags:** prewritten creator descriptions are not given another AI hashtag line. Existing creator-specific posting hashtags and footer behavior remain intact.
+
+Offline regression: `.venv\\Scripts\\python.exe tests\\test_upstream_campaign_sync.py`. Full isolated test suite: `.venv\\Scripts\\python.exe tests\\run.py`. These checks are included in `tests/run.py`; they need to be executed on Windows before declaring the sync verified. The original PeakCut changes beyond this selective batch are **not** yet fully merged.
+
 ## Settings
 
 Everything is set through environment variables, normally in a `.env` file next to this README.
