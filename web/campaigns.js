@@ -38,7 +38,7 @@ function drawCampaigns() {
       (c.hook_text ? '<p class="lc-c-preview"><b>Big text:</b> '+esc(c.hook_text)+'</p>':"")+
       '<div class="lc-c-tags">'+(tags||'<span class="lc-c-muted">No custom hashtags</span>')+'</div>'+
       '<div class="lc-c-meta"><span>'+jobList.length+' video job'+(jobList.length===1?"":"s")+'</span><span>'+done+' finished clip'+(done===1?"":"s")+'</span></div>'+
-      '<div class="lc-c-actions"><button class="btn primary sm" data-campaign-action="use" data-id="'+esc(c.id)+'" '+(c.status==="active"?"":"disabled")+'>'+ic("scissors")+'Use for clips</button><button class="btn sm" data-campaign-action="edit" data-id="'+esc(c.id)+'">'+ic("cog")+'Edit</button><button class="btn sm" data-campaign-action="toggle" data-id="'+esc(c.id)+'">'+(c.status==="active"?"Pause":"Activate")+'</button><button class="btn sm danger" data-campaign-action="delete" data-id="'+esc(c.id)+'" title="Delete campaign">'+ic("trash")+'</button></div></article>';
+      '<div class="lc-c-actions"><button class="btn primary sm" data-campaign-action="use" data-id="'+esc(c.id)+'" '+(c.status==="active"?"":"disabled")+'>'+ic("scissors")+'Use for clips</button><button class="btn sm" data-campaign-action="view" data-id="'+esc(c.id)+'" '+(jobList.length?"":"disabled")+'>'+ic("film")+'View clips</button><button class="btn sm" data-campaign-action="edit" data-id="'+esc(c.id)+'">'+ic("cog")+'Edit</button><button class="btn sm" data-campaign-action="toggle" data-id="'+esc(c.id)+'">'+(c.status==="active"?"Pause":"Activate")+'</button><button class="btn sm danger" data-campaign-action="delete" data-id="'+esc(c.id)+'" title="Delete campaign">'+ic("trash")+'</button></div></article>';
   }).join("")+'</div><p class="lc-c-footnote">Campaign rates are reference notes only, not tracked revenue or guaranteed payouts. Review usage rights and brand rules before publishing. Deleting a campaign leaves previously created clip jobs intact.</p>';
 }
 
@@ -100,6 +100,11 @@ document.addEventListener("click", async e => {
       const btn = $('[data-act="toggleopts"]');
       if (btn && !$(".composer-opts")?.classList.contains("open")) btn.click();
       toast("Selected " + selected.name + ". Add a video link or upload a file.", "ok");
+      return;
+    }
+    if (action === "view") {
+      S.campaignFilter = selected.id;
+      go("library");
       return;
     }
     if (action === "toggle") {
