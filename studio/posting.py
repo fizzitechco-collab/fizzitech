@@ -134,7 +134,7 @@ def _with_creator_hashtag(text, hashtag, max_length=None):
 
 
 def _caption(clip, creator):
-    tags = "" if clip.get("hashtags_in_description") else " ".join(
+    tags = "" if clip.get("fixed_description") or clip.get("hashtags_in_description") else " ".join(
         "#" + str(h).lstrip("#") for h in clip.get("hashtags", []) if h)
     base = "\n\n".join(x for x in (clip.get("description", ""), tags, creator.get("post_footer", "")) if x)
     return _with_creator_hashtag(base, _creator_hashtag(creator))
