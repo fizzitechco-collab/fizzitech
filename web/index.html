@@ -1192,6 +1192,7 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 .lc-c-empty h3{font-size:20px;color:#f5f6f8}.lc-c-empty p,.lc-c-footnote{color:#aeb6c1;font-size:12px}
 .lc-c-empty-icon svg{height:40px;width:40px;color:#e4e9f0}
 .lc-c-footnote{margin-top:24px}
+.lc-c-filter{display:flex;align-items:center;gap:10px;margin:10px 0 18px;padding:10px 13px;background:#141820;border:1px solid #353b46;border-radius:12px;color:#cdd3de;font-size:13px}.lc-c-filter svg{width:17px;height:17px}
 .lc-why{color:#aeb7c3;font-size:12px;line-height:1.45;display:flex;gap:5px;align-items:flex-start;margin:2px 0 4px}.lc-why svg{width:13px;height:13px;margin-top:2px;flex:none}.lc-c-tag svg{width:12px;height:12px;margin-right:5px;vertical-align:-2px}.lc-c-dialog{max-height:min(88vh,780px);overflow:auto}.lc-c-dialog textarea{min-height:78px;resize:vertical}
 .lc-c-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:700px){.lc-c-intro{align-items:start;flex-direction:column}.lc-campaign-summary,.lc-c-form-row{grid-template-columns:1fr}.lc-c-grid{grid-template-columns:1fr}}
@@ -1438,7 +1439,7 @@ function startTour() {
 
 /* ============================================================ state */
 const S = {status:{styles:{}, layouts:{}}, jobs:[], creators:[], accounts:[], overview:null, settings:null,
-           view:"overview", ctab:"clips", campaigns:[], campaignChoice:""};
+           view:"overview", ctab:"clips", campaigns:[], campaignChoice:"", campaignFilter:""};
 const D = {jid:null, cid:null, sig:""};
 const creatorId = () => S.view.startsWith("c:") ? S.view.slice(2) : null;
 const creator = () => S.creators.find(c => c.id === creatorId());
@@ -1718,7 +1719,7 @@ function go(v, tab, fromHistory) {
   $("#heroSlot").innerHTML = v === "overview" ? `<section class="hero"><div class="ga-bg" id="appAscii" aria-hidden="true"></div><h2>What do you want to clip today?</h2>
       <p>Paste a link or drop in videos. You get captioned shorts back.</p><div id="add"></div></section>` : "";
   if (v === "overview") view.innerHTML = `<div id="ov"></div>`;
-  else if (v === "library") view.innerHTML = `<div id="add"></div><div id="jobs"></div>`;
+  else if (v === "library") view.innerHTML = `<div id="add"></div><div id="campaign-filter"></div><div id="jobs"></div>`;
   else if (v === "auto-clipping") view.innerHTML = `<div id="gta-auto"></div>`;
   else if (v === "campaigns") view.innerHTML = `<div id="campaigns-page"></div>`;
   else if (v === "settings") view.innerHTML = `<div id="sform"></div>`;
@@ -2466,6 +2467,12 @@ function drawJobs() {
   const root = $("#jobs"); if (!root) return;
   const cid = creatorId();
   let list = cid ? S.jobs.filter(j => j.creator === cid) : S.jobs;
+  const campaignBar = $("#campaign-filter");
+  if (campaignBar) {
+    const selected = (S.campaigns || []).find(x => x.id === S.campaignFilter);
+    put(campaignBar, S.campaignFilter ? `<div class="lc-c-filter">${ic("folder")}Showing campaign: <b>${esc(selected?.name || "Archived campaign")}</b><span class="grow"></span><button class="btn sm" data-act="clearcampaignfilter">Show all videos</button></div>` : "");
+  }
+  if (!cid && S.campaignFilter) list = list.filter(j => j.options?.custom_campaign_id === S.campaignFilter);
   const liveBox = $("#live");
   if (liveBox) { const lj = list.find(j => j.status === "live");
     if (!liveBox.querySelector(".pick.open")) put(liveBox, lj ? liveHtml(lj) : "");  // don't redraw under an open menu
@@ -2954,7 +2961,8 @@ document.addEventListener("click", async e => {
   const a = b.dataset.act, d = b.dataset;
   if (b.tagName === "A") e.preventDefault();
   try {
-    if (a === "go") { closePops(); return go(d.v, d.tab); }
+    if (a === "go") { closePops(); if (d.v === "library") S.campaignFilter = ""; return go(d.v, d.tab); }
+    if (a === "clearcampaignfilter") { S.campaignFilter = ""; return render(); }
     if (a === "aimodels") {
       b.disabled = true;
       try {
