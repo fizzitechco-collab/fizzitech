@@ -16,7 +16,7 @@ os.environ["DATABASE_URL"] = ""
 os.environ["PEAKCUT_UPDATE_CHECK"] = "0"
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from studio import brain, ctx, custom_campaigns, jobs
+from studio import brain, ctx, custom_campaigns, jobs, creators, posting
 
 checks = 0
 def check(name, result):
@@ -150,6 +150,26 @@ try:
                   clips == [] and "requires a working AI" in info["note"])
         finally:
             brain.ask_ai = original_ask
+
+    # Paid/branded campaigns require manual publish review. Other creator
+    # auto-post rules remain unchanged.
+    original_creator_get, original_enqueue = creators.get, posting.enqueue
+    sent = []
+    try:
+        creators.get = lambda _cid: {"autopost": True, "accounts": ["fake-destination"],
+                                     "post_rights_confirmed": True, "post_min_score": 80}
+        posting.enqueue = lambda *args, **kwargs: (sent.append((args, kwargs)) or [])
+        post_job = {"creator": "fake-creator", "options": {"clip_mode": "gaming"},
+                    "custom_campaign": {"id": "fakecampaign"}}
+        posting.on_clip_ready(post_job, {"score": 95, "title": "Branded clip"})
+        check("Branded campaign clips cannot inherit automatic posting",
+              sent == [])
+        normal_job = {"creator": "fake-creator", "options": {"clip_mode": "gaming"}}
+        posting.on_clip_ready(normal_job, {"score": 95, "title": "Ordinary clip"})
+        check("Normal creator automatic posting still follows existing preferences",
+              len(sent) == 1)
+    finally:
+        creators.get, posting.enqueue = original_creator_get, original_enqueue
 
     ui = (Path(__file__).resolve().parents[1] / "web" / "index.html").read_text(encoding="utf-8")
     page = (Path(__file__).resolve().parents[1] / "web" / "campaigns.js").read_text(encoding="utf-8")
