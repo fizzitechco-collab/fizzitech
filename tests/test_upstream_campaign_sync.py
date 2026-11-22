@@ -13,7 +13,7 @@ from pathlib import Path
 os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="legend-upstream-copy-")
 os.environ["DATABASE_URL"] = ""
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from studio import account, creators, ctx, jobs, posting
+from studio import account, brain, creators, ctx, jobs, posting
 
 checks = 0
 
@@ -84,6 +84,30 @@ try:
                       clip["title"] == before)
             else:
                 raise AssertionError("Protected GTA metadata unexpectedly modified")
+
+    # AI rewrite is a review-only draft, tested without a provider connection.
+    original_ai = brain.ask_ai
+    seen = []
+    def fake_ai(prompt, schema=None, purpose=""):
+        seen.append((prompt, schema, purpose))
+        return ({"title": "Great Minecraft clutch", "description": "A surprising escape.",
+                 "hashtags": ["Minecraft", "#clutch", "shorts"]}, "fake", 0)
+    try:
+        brain.ask_ai = fake_ai
+        draft = brain.rewrite_post_text("The player escaped the trap after falling into lava.",
+                                             "Minecraft highlights", "Creator")
+        check("AI post rewrite returns an editable draft",
+              draft["title"] == "Great Minecraft clutch" and draft["hashtags"] == ["Minecraft", "clutch", "shorts"])
+        check("AI post rewrite uses the dedicated schema and transcript",
+              bool(seen) and seen[0][1] is brain.POST_TEXT_SCHEMA and "falling into lava" in seen[0][0])
+        try:
+            brain.rewrite_post_text("too short")
+        except ValueError:
+            check("AI post rewrite refuses empty/insufficient transcripts", True)
+        else:
+            raise AssertionError("AI rewrite accepted insufficient words")
+    finally:
+        brain.ask_ai = original_ai
 
     print(f"ALL PASSED ({checks} upstream-copy checks)")
 finally:
