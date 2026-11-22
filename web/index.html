@@ -2629,7 +2629,7 @@ function drawUsage() {
 /* ============================================================ settings */
 // With sign-in off there is no profile or password to manage. The AI section is for whoever runs the server.
 const setTabs = () => [
-  ...(S.status.user?.is_admin ? [["ai", "AI", "bolt", "Your AI service, model and key"]] : []),
+  ...(S.status.user?.is_admin ? [["ai", "AI", "bolt", "Save key, choose model and test"]] : []),
   ...(S.status.accounts === false ? [] : [["profile", "Profile", "user", "Your name, email and how you sign in"],
                                           ["security", "Security", "lock", "Password and signing out"]]),
   ["apps", "Connected apps", "plug", "Where your clips get posted"],
@@ -2637,7 +2637,7 @@ const setTabs = () => [
 function aiHints() {
   const k = S.ai, sel = $("#ai_provider"); if (!k || !sel) return;
   const pv = k.providers.find(x => x.id === sel.value) || k.providers[0], same = pv.id === k.provider;
-  $("#ai_key").placeholder = same && k.has_key ? `Saved${k.key_hint ? ", ends in " + k.key_hint : ""}. Paste a new key to replace it` : pv.needs_key ? "Paste your key" : "Not needed";
+  $("#ai_key").placeholder = same && k.has_key ? `Key already saved${k.key_hint ? " (ends " + k.key_hint + ")" : ""}. Leave blank to keep it` : pv.needs_key ? "Paste a key to save" : "Not needed";
   $("#ai_keyhint").innerHTML = pv.key_url ? `${pv.needs_key ? "Get a key at" : "Set it up at"} <a href="${esc(pv.key_url)}" target="_blank" rel="noopener">${esc(pv.key_url.replace("https://", ""))}</a>. The key stays on this server and is never shown again.` : "The key stays on this server and is never shown again.";
   $("#ai_model").placeholder = pv.example ? "For example " + pv.example : "The model id, exactly as the service names it";
   $("#ai_base").placeholder = pv.address || "http://127.0.0.1:1234/v1";
@@ -2654,7 +2654,8 @@ async function drawSettings() {
     if (tab === "ai") {
       const k = S.ai = await api("/api/ai");
       body.innerHTML = `<section class="set-sec"><h2>AI</h2><p class="help">Legend Clipper uses an AI model to pick the moments worth clipping and to write hooks, titles and captions. Use your own key from any of these services. You pay that service directly. Without a key, clips are picked by loudness.</p>
-          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Ready</span><span class="sub">${esc(k.label)} · ${esc(k.models[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
+          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Configured</span><span class="sub">${esc(k.label)} · ${esc(k.models[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
+          <p class="help" id="ai_save_state" role="status" aria-live="polite" style="margin:12px 0">${k.saved_here ? `Settings saved on this server (data/ai.json). ${k.has_key ? "API key stored" + (k.key_hint ? ", ending " + esc(k.key_hint) : "") + "." : "No API key stored."}` : k.has_key ? "Key is coming from the server environment (.env); use Save settings to keep the selected model/key in this server\u2019s data folder." : "No key saved yet. Save settings first; test the API connection separately."}</p>
           <div class="ai-form">
             <label class="f">AI service<select id="ai_provider">${k.providers.map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>
             <label class="f">Key<input id="ai_key" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="ai_keyhint"></span></label>
@@ -2662,7 +2663,7 @@ async function drawSettings() {
             <label class="f">Model<span class="with"><input id="ai_model" list="ai_models" value="${esc(k.models.join(", "))}" spellcheck="false"><button class="btn" type="button" data-act="aimodels">Find models</button></span>
               <datalist id="ai_models"></datalist><span class="hint">A fast, inexpensive model is the right choice. Add a second one after a comma to fall back on.</span></label>
           </div>
-          <div class="row" style="margin-top:20px"><button class="btn primary" data-act="aisave">Save and test</button>${k.ready ? `<button class="btn" data-act="aitest">Test again</button>` : ""}</div></section>`;
+          <div class="row" style="margin-top:20px"><button class="btn primary" type="button" data-act="aisave">Save settings</button><button class="btn" type="button" data-act="aitest" ${k.ready ? "" : "disabled"}>Test AI connection</button></div><p class="help">Saving only writes to this server. A wrong or unavailable Gemini key/model can still be saved; Test AI connection checks whether Gemini actually responds.</p></section>`;
       aiHints();
     }
     if (tab === "profile") {
@@ -2892,15 +2893,38 @@ document.addEventListener("click", async e => {
       } finally { b.disabled = false; }
       return;
     }
-    if (a === "aisave" || a === "aitest") {
+    if (a === "aisave") {
       b.disabled = true;
       try {
-        if (a === "aisave") await send("/api/ai", {provider: $("#ai_provider").value, models: $("#ai_model").value, base_url: $("#ai_base").value, key: $("#ai_key").value}, "PUT");
-        let ok = null, why = "";
-        try { ok = await send("/api/ai/test"); } catch (err) { why = err.message; }
+        const chosenProvider = $("#ai_provider").value;
+        const chosenModels = $("#ai_model").value;
+        const suppliedKey = $("#ai_key").value;
+        const saved = await send("/api/ai", {provider:chosenProvider, models:chosenModels,
+          base_url:$("#ai_base").value, ...(suppliedKey.trim() ? {key:suppliedKey} : {})}, "PUT");
+        const verified = await api("/api/ai");
+        const desiredModels = chosenModels.split(",").map(x=>x.trim()).filter(Boolean);
+        if (!verified.saved_here || !verified.ready || verified.provider !== chosenProvider ||
+            desiredModels.join(",") !== verified.models.join(",") ||
+            (saved.has_key && !verified.has_key)) {
+          throw new Error("Could not verify that AI settings were saved on this server.");
+        }
+        S.ai = verified;
         S.status = await api("/api/status"); drawShell(); await drawSettings();
-        if (ok) toast(`Saved. ${ok.model} answered, so the AI is ready.`, "ok");
-        else toast(`Saved, but the test failed. ${why}`, "bad");
+        toast("AI settings SAVED on this server. Use Test AI connection to check the model/key.", "ok");
+      } finally { b.disabled = false; }
+      return;
+    }
+    if (a === "aitest") {
+      b.disabled = true;
+      try {
+        const result = await send("/api/ai/test");
+        const line = $("#ai_save_state");
+        if (line) line.textContent = "Settings saved. AI connection verified: " + result.model + " answered successfully.";
+        toast("AI connected: " + result.model + " answered successfully.", "ok");
+      } catch (err) {
+        const line = $("#ai_save_state");
+        if (line) line.textContent = "Your saved settings are kept, but the AI connection test failed: " + err.message;
+        toast("AI test failed (settings were not deleted): " + err.message, "bad");
       } finally { b.disabled = false; }
       return;
     }
