@@ -1232,7 +1232,9 @@ def _run_job(job):
                     c["hashtags"] = merged[:12]
             job["clips"].append(c)
             futures.append((renders.submit(ctx.bind(make), c, list(words)), c))
-        job["ai"] = {"model": model, "tokens": tokens, "note": "", "log": notes[-5:]}
+        job["ai"] = {"model": model, "tokens": tokens,
+                     "note": ai.get("note", "") if job.get("custom_campaign") and not model else "",
+                     "log": notes[-5:]}
         job["done_blocks"] = bi + 1       # a restart from here on carries on with the next part
         save(job)
         if _scan_quota_met(job):
