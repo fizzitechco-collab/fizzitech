@@ -112,6 +112,12 @@ def _video_format(height):
     """Source-quality cap: Auto chooses best available up to 4K, never unbounded."""
     requested = int(height)
     cap = 2160 if requested == 0 else min(2160, max(144, requested))
+    if requested == 0:
+        # Prefer the actual top resolution, even when it is VP9/AV1 rather than AVC.
+        return f"bv*[height<={cap}]+ba/b[height<={cap}]"
+    if requested == 2160:
+        # An explicitly requested 4K source must really be 4K.
+        return "bv*[height>=2160][height<=2160]+ba/b[height>=2160][height<=2160]"
     return (f"bv*[height<={cap}][vcodec^=avc1]+ba[ext=m4a]/"
             f"bv*[height<={cap}]+ba/"
             f"b[height<={cap}]")
