@@ -95,7 +95,7 @@ document.addEventListener("click", async e => {
     if (action === "edit") return openCampaignEditor(selected);
     if (action === "use") {
       if (selected.status !== "active") throw new Error("Activate this campaign before using it.");
-      localStorage.setItem("legend_custom_campaign_last", selected.id);
+      S.campaignChoice = selected.id;
       go("overview");
       const btn = $('[data-act="toggleopts"]');
       if (btn && !$(".composer-opts")?.classList.contains("open")) btn.click();
@@ -105,6 +105,7 @@ document.addEventListener("click", async e => {
     if (action === "toggle") {
       await send("/api/custom-campaigns/" + encodeURIComponent(selected.id),
                  {status:selected.status==="active"?"paused":"active"}, "PUT");
+      if (selected.status === "active" && S.campaignChoice === selected.id) S.campaignChoice = "";
       await loadCampaigns();
       toast("Campaign status updated.", "ok");
       return;
@@ -112,7 +113,7 @@ document.addEventListener("click", async e => {
     if (action === "delete") {
       if (!await ask("Delete " + selected.name + "?", "The campaign definition will be removed. Completed clips and jobs remain unchanged. This cannot be undone.", "Delete campaign", true)) return;
       await api("/api/custom-campaigns/" + encodeURIComponent(selected.id), {method:"DELETE"});
-      if (localStorage.getItem("legend_custom_campaign_last") === selected.id) localStorage.removeItem("legend_custom_campaign_last");
+      if (S.campaignChoice === selected.id) S.campaignChoice = "";
       await loadCampaigns();
       toast("Campaign removed. Existing clips were preserved.", "ok");
     }
@@ -121,6 +122,6 @@ document.addEventListener("click", async e => {
 
 document.addEventListener("change", e => {
   if (e.target.id === "o_custom_campaign") {
-    try { localStorage.setItem("legend_custom_campaign_last", e.target.value); } catch {}
+    S.campaignChoice = e.target.value;
   }
 });
