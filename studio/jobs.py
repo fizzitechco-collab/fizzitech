@@ -564,6 +564,29 @@ def save_post_text(job, clip, changes: dict):
     return clip
 
 
+def spoken_in(job, clip) -> str:
+    """Only the words from this clip, for optional AI post-text regeneration."""
+    path = Path(job["dir"]) / "words.json"
+    try:
+        if path.stat().st_size > 75_000_000:
+            return ""  # avoid reading an enormous transcript just to edit a title
+        words = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    if not isinstance(words, list):
+        return ""
+    start, end = float(clip.get("start", 0)), float(clip.get("end", 0))
+    return " ".join(str(w.get("w", "")) for w in words if isinstance(w, dict)
+                    and start - 0.5 <= _post_word_second(w.get("s")) <= end + 0.5)[:9000]
+
+
+def _post_word_second(value) -> float:
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return -1.0
+
+
 def request_render(jid, cid, changes: dict):
     job = _jobs[jid]
     clip = next(c for c in job["clips"] if c["id"] == cid)
