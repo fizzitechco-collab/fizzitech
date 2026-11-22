@@ -50,9 +50,21 @@ def _write(rows: list[dict]) -> None:
             json.dump(rows, out, indent=2, ensure_ascii=False)
             out.flush()
             os.fsync(out.fileno())
-        tmp.replace(file)
+        # Windows scanners/antivirus may briefly hold the previous JSON.
+        # Follow the existing job save strategy instead of silently losing data.
+        for attempt in range(12):
+            try:
+                tmp.replace(file)
+                break
+            except PermissionError:
+                if attempt == 11:
+                    raise
+                time.sleep(min(0.05 * (attempt + 1), 0.5))
     finally:
-        tmp.unlink(missing_ok=True)
+        try:
+            tmp.unlink(missing_ok=True)
+        except PermissionError:
+            pass
     ctx.bump()
 
 
