@@ -1433,7 +1433,7 @@ function startTour() {
 
 /* ============================================================ state */
 const S = {status:{styles:{}, layouts:{}}, jobs:[], creators:[], accounts:[], overview:null, settings:null,
-           view:"overview", ctab:"clips"};
+           view:"overview", ctab:"clips", campaigns:[], campaignChoice:""};
 const D = {jid:null, cid:null, sig:""};
 const creatorId = () => S.view.startsWith("c:") ? S.view.slice(2) : null;
 const creator = () => S.creators.find(c => c.id === creatorId());
@@ -1776,7 +1776,7 @@ function drawAdd(variant) {
       <div class="ob wide"><div class="ot">Custom campaign (optional)</div>
         <label class="f">Campaign for this video<select id="o_custom_campaign">
           <option value="">None — regular clipping</option>
-          ${(S.campaigns || []).filter(x => x.status === "active").map(x => `<option value="${esc(x.id)}" ${localStorage.getItem("legend_custom_campaign_last") === x.id ? "selected" : ""}>${esc(x.name)}${x.brand ? " · " + esc(x.brand) : ""}</option>`).join("")}
+          ${(S.campaigns || []).filter(x => x.status === "active").map(x => `<option value="${esc(x.id)}" ${S.campaignChoice === x.id ? "selected" : ""}>${esc(x.name)}${x.brand ? " · " + esc(x.brand) : ""}</option>`).join("")}
         </select></label>
         <p class="help">Apply this campaign's optional hook, description and hashtags to NEW clips only. Separate from GTA 6. <button type="button" class="btn sm" data-act="go" data-v="campaigns">Manage Campaigns</button></p>
       </div>
@@ -2148,6 +2148,7 @@ async function makeClips() {
   A.files = A.files.filter(f => { if (f.state === "done") { URL.revokeObjectURL(f.src); return false; } return true; });
   A.busy = false; drawAtt();
   if (started) {
+    S.campaignChoice = ""; // Each job opts in deliberately; no accidental brand carry-over.
     toast(`${started === 1 ? "Your video is" : started + " videos are"} being clipped now.`, "ok");
     if (!failed && S.view === "overview") go(who ? "c:" + who : "library"); else tick();
   } else if (failed) toast("Nothing was started. The reason is shown on the video.", "bad");
@@ -2166,6 +2167,7 @@ async function watchLiveUrl() {
   const A=att(); const url = $("#url")?.value.trim() || A.links.find(l=>l.url)?.url || "";
   if (!url) return toast("Paste a YouTube/Twitch/Kick livestream or channel URL first.","bad");
   try { const o=jobOptions(); /* Preserve Auto=0 for live-watch recordings. */
+    if (o.custom_campaign_id) throw new Error("Custom Campaigns currently work with Make clips, not Watch LIVE URL. Select None for live monitoring.");
     await send("/api/live-watch",{url,options:o},"POST");
     toast("Watching this live link every 5 minutes. A separate creator workspace was added.","ok");
     await updateLiveWatches(); await tick();
