@@ -130,7 +130,7 @@ on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first f
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "auto", "quality": 360,
             "caption_base": "FFFFFF", "caption_active": "6BD7FF", "hook_box": "FFFFFF", "hook_text": "14100E",
-            "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
+            "overlay_hook_text": "", "description_text": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
 
 
 # LEGEND NEON V1: safe per-job analysis defaults
@@ -157,6 +157,10 @@ def clean_options(options) -> dict:
             v = v if v in render.STYLES else DEFAULTS["style"]
         elif k == "layout":
             v = v if v in render.LAYOUTS else DEFAULTS["layout"]
+        elif k == "overlay_hook_text":
+            v = creators.clean_overlay_hook(v)
+        elif k == "description_text":
+            v = creators.clean_description_text(v)
         elif k == "facecam_position":
             v = v if v in ("auto", "top_left", "top_right", "bottom_left", "bottom_right") else "auto"
         elif k == "facecam_size":
@@ -432,7 +436,7 @@ def create(source: dict, options: dict, enqueue=True, creator=None, kind="video"
     c = creators.get(creator) if creator else None
     if c:
         d = creators.root(c["id"]) / ("live" if kind == "live" else "videos") / jid
-        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "facecam_position", "facecam_size", "facecam_rect", "cta_enabled", "cta_creator_name") if k in c}}
+        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "facecam_position", "facecam_size", "facecam_rect", "cta_enabled", "cta_creator_name", "overlay_hook_text", "description_text") if k in c}}
         if kind == "live":
             base["quality"] = int(c.get("clip_quality", 1080))
             base["clip_mode"] = str(c.get("clip_mode", "gaming"))
@@ -1080,7 +1084,16 @@ def _run_job(job):
                      end=round(c["end"] + shift, 2), style=o["style"], layout=o["layout"], caption_base=o.get("caption_base", "FFFFFF"),
                      caption_active=o.get("caption_active", "6BD7FF"), hook_box=o.get("hook_box", "FFFFFF"),
                      hook_text=o.get("hook_text", "14100E"), facecam_review=o.get("facecam_review", False), cta_enabled=o.get("cta_enabled", False), cta_creator_name=o.get("cta_creator_name") or job.get("uploader", ""), status="queued", version=0)
-            if o.get("clip_mode") == "gaming" and game_name:
+            # Upstream creator-wide campaign copy. Keep the existing hook_text
+            # field as a COLOR; the new overlay_hook_text is the actual headline.
+            # Protected GTA VI/Expedia campaigns retain their own rules/copy.
+            if o.get("clip_mode") in ("gaming", "irl") and not o.get("campaign_destination"):
+                if o.get("overlay_hook_text"):
+                    c["hook"] = o["overlay_hook_text"]
+                if o.get("description_text"):
+                    c["description"] = o["description_text"]
+                    c["fixed_description"] = True
+            if o.get("clip_mode") == "gaming" and game_name and not c.get("fixed_description"):
                 # Upstream game tags, but keep special GTA6 and Expedia campaign copy intact.
                 block_words = [dict(w, s=w["s"] + shift) for w in bw]
                 hashtags.apply(c, block_words, job["title"], job["uploader"], game_name)
