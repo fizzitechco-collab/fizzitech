@@ -1153,6 +1153,11 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 .legend-clip-steps .nstep .ctl button{color:#F4F6F8!important;min-width:30px;min-height:30px}
 .legend-clip-steps .nstep .ctl button:hover{background:#F5F6F8!important;color:#111317!important}
 .legend-clip-hint{margin-top:11px!important;color:#B5BBC4!important;font-size:12px}
+.legend-duration-presets{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
+.legend-duration-presets span{font-size:11px;color:#AFB6C0;padding-right:4px}
+.legend-duration-presets button{border:1px solid #353B46;background:#22262F;color:#CFD5DE;border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer}
+.legend-duration-presets button[aria-pressed=true]{border-color:#F2F3F5;background:#F2F3F5;color:#15181E;font-weight:700}
+
 @media(max-width:680px){.legend-clip-steps{grid-template-columns:1fr}}
 
 /* LEGEND NEON V1: unobtrusive dark rating controls; white text remains visible on hover. */
@@ -1763,6 +1768,10 @@ function drawAdd(variant) {
           ${stepper('o_max', 'How many clips', localStorage.getItem('legend_clip_limit_mode') === 'max' ? 100 : (Number(localStorage.getItem('legend_clip_count_custom')) || c?.max_clips || 6), 1, 100, 1, '')}
           ${stepper('o_min', 'Shortest', c?.min_len ?? 15, 5, 120, 5, 's')}
           ${stepper('o_maxlen', 'Longest', c?.max_len ?? 60, 10, 180, 5, 's')}
+        </div>
+        <div class="legend-duration-presets" role="group" aria-label="Quick clip duration presets">
+          <span>Duration presets:</span>
+          ${[["auto","Auto · 15–60s"],["short","Short · 15–30s"],["medium","Medium · 30–60s"],["long","Long · 60–120s"]].map(([k,n])=>`<button type="button" data-duration-preset="${k}" aria-pressed="false">${n}</button>`).join("")}
         </div>
         <p class="help legend-clip-hint">Custom: choose 1–100 clips. MAX: search for up to 100 worthwhile moments; it won't invent filler clips. High limits use more AI calls, downloads and render time.</p>
       </div>
@@ -2900,6 +2909,16 @@ function loop() {
 }
 
 /* ============================================================ actions */
+// Original lightweight clip-length shortcuts (no changes to backend or saved recordings).
+document.addEventListener("click", e => {
+  const button = e.target.closest("[data-duration-preset]"); if (!button) return;
+  e.preventDefault();
+  const range = {auto:[15,60],short:[15,30],medium:[30,60],long:[60,120]}[button.dataset.durationPreset];
+  if (!range || !$("#o_min") || !$("#o_maxlen")) return;
+  $("#o_min").value = range[0];
+  $("#o_maxlen").value = range[1];
+  $("#legend-clip-count-panel [data-duration-preset]").forEach(b => b.setAttribute("aria-pressed", String(b === button)));
+});
 document.addEventListener("submit", e => { if (e.target.id === "addform") { e.preventDefault();
   makeClips().catch(err => { console.error('Legend Clipper: start clips failed', err); toast(err?.message || 'Unable to start clipping. Check Options and try again.', 'bad'); });
 } });
