@@ -148,10 +148,8 @@ def clean_options(options) -> dict:
             continue
         if k == "quality":
             v = int(v)
-            # LEGEND_SOURCE1080_JOBS_V1: old 4K saved jobs downgrade to 1080p.
-            if v == 2160: v = 1080
-            if v not in (360, 720, 1080):
-                raise ValueError("Select 360p, 720p or 1080p maximum.")
+            if v not in (0, 360, 720, 1080, 2160):
+                raise ValueError("Select Auto (up to 4K), 360p, 720p, 1080p or 4K.")
         elif k in LIMITS:
             lo, hi = LIMITS[k]
             v = max(lo, min(hi, int(float(v))))
