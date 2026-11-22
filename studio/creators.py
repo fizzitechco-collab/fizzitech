@@ -70,7 +70,7 @@ def _clean(data: dict) -> dict:
         elif k == "rate_per_1k":
             v = max(0.0, min(1000.0, float(v or 0)))
         elif k == "clip_quality":
-            v = int(v) if int(v) in (360, 720, 1080, 2160) else 1080
+            v = int(v) if int(v) in (0, 360, 720, 1080, 2160) else 1080
         elif k == "plan":
             v = v if v in ("free", "pro", "max") else "free"
         elif k == "decide_mode":
