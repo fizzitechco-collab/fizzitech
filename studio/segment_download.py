@@ -44,8 +44,8 @@ MAX_FETCH_SECONDS = _setting_int("PEAKCUT_SEGMENT_TIMEOUT", 210, 20, 600)
 IDLE_SECONDS = _setting_int("PEAKCUT_DOWNLOAD_IDLE_TIMEOUT", 75, 10, 180)
 FALLBACK_SECONDS = _setting_int("PEAKCUT_FALLBACK_TIMEOUT", 900, 60, 3600)
 FALLBACK_HEIGHT = _setting_int("PEAKCUT_FALLBACK_HEIGHT", 360, 144, 720)
-# LEGEND_SOURCE1080_SEGMENTS_V1: even if environment requests 2160, never download above 1080.
-FETCH_HEIGHT_CAP = min(1080, _setting_int("PEAKCUT_FETCH_HEIGHT_CAP", 1080, 144, 2160))
+# User-configurable physical source cap (Auto defaults to genuine 4K maximum).
+FETCH_HEIGHT_CAP = min(2160, _setting_int("PEAKCUT_FETCH_HEIGHT_CAP", 2160, 144, 2160))
 FALLBACK_MAX_GB = _setting_int("PEAKCUT_FALLBACK_MAX_GB", 2, 1, 20)
 DOWNLOAD_SLOTS = _setting_int("PEAKCUT_SEGMENT_DOWNLOADS", 1, 1, 4)
 
@@ -207,14 +207,18 @@ def _yt_dlp_base(url: str) -> list[str]:
 
 
 def _source_cap(export_height: int) -> int:
-    # LEGEND_HLS_FIRST_PATCH_V1
-    # Fetch up to 1080p even when the export preset is smaller.
-    return min(1080, FETCH_HEIGHT_CAP)
+    # Keep verified old 360p/720p/1080p paths at their existing 1080p cap.
+    # Zero means Auto: choose the best stream the source actually offers <=4K.
+    return min(2160 if int(export_height) in (0, 2160) else 1080, FETCH_HEIGHT_CAP)
 
 
 
 def _hd_min_height(export_height: int) -> int:
-    # Never use a 360p source for clips.
+    # Auto accepts the actual source resolution; explicit presets are strict.
+    if int(export_height) == 0:
+        return 0
+    if int(export_height) >= 2160:
+        return 2160
     return 1080 if int(export_height) >= 1080 else 720
 
 
@@ -233,7 +237,20 @@ def _section_cmd(url: str, template: str, start: float, end: float, height: int,
 
     selected = f"[height>={minimum}][height<={cap}]"
 
-    if _is_youtube_url(url):
+    if int(height) == 0:
+        # Automatic maximum needs adaptive 4K/1440p streams when available.
+        # HTTPS often has 4K; HLS is the verified fallback for blocked sources.
+        limited = f"[height<={cap}]"
+        if _is_youtube_url(url):
+            if alternate:
+                fmt = (f"bv[protocol^=m3u8]{limited}+ba[protocol^=m3u8]/"
+                       f"b[protocol^=m3u8]{limited}")
+            else:
+                fmt = (f"bv[protocol=https]{limited}+ba[protocol=https]/"
+                       f"b[protocol=https]{limited}")
+        else:
+            fmt = f"bv{limited}+ba/b{limited}"
+    elif _is_youtube_url(url):
         if not alternate:
             # 312+234 successfully downloaded 1080p60 from the GTA 6 livestream.
             # Other HLS streams are selected automatically if IDs differ.
@@ -407,7 +424,7 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
         raise ValueError("Invalid video clip times")
     out_dir = Path(out_dir).resolve().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    height = min(1080, int(height))
+    height = 0 if int(height) == 0 else min(2160, int(height))
     cap = _source_cap(height)
     minimum = _hd_min_height(height)
     if minimum and cap < minimum:
@@ -428,7 +445,9 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
             try:
                 cmd = _section_cmd(url, str(out_dir / (stem + ".%(ext)s")), start, end, height,
                                    alternate=(attempt == 2))
-                _run_bounded(cmd, out_dir, stem + ".*", MAX_FETCH_SECONDS, cancelled=cancelled,
+                _run_bounded(cmd, out_dir, stem + ".*",
+                             max(MAX_FETCH_SECONDS, 420) if height in (0, 2160) else MAX_FETCH_SECONDS,
+                             cancelled=cancelled,
                              progress=(lambda size, elapsed: stage(
                                  f"Downloading segment: {size / 1048576:.1f} MB, "
                                  f"{size / 1048576 / max(1, elapsed):.1f} MB/s")) if stage else None)
