@@ -12,7 +12,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-from . import brain, campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage, games, hashtags
+from . import brain, campaigns, custom_campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage, games, hashtags
 
 class _FairQueue:
     """Whose video is next. Each person has their own line and the lines take turns, so someone who adds ten
@@ -130,7 +130,7 @@ on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first f
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "auto", "quality": 360,
             "caption_base": "FFFFFF", "caption_active": "6BD7FF", "hook_box": "FFFFFF", "hook_text": "14100E",
-            "overlay_hook_text": "", "description_text": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
+            "overlay_hook_text": "", "description_text": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "custom_campaign_id": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
 
 
 # LEGEND NEON V1: safe per-job analysis defaults
@@ -184,6 +184,10 @@ def clean_options(options) -> dict:
             v = str(v)
             if v not in campaigns.MODES:
                 raise ValueError("Choose Gaming, IRL, or GTA 6 clipping mode.")
+        elif k == "custom_campaign_id":
+            v = str(v).strip()
+            if not re.fullmatch(r"[0-9a-f]{16}", v):
+                raise ValueError("Invalid custom campaign ID.")
         elif k == "campaign_destination":
             v = str(v).strip()[:55]
             if v and not re.fullmatch(r"[\w\- .,']+", v):
@@ -446,12 +450,18 @@ def create(source: dict, options: dict, enqueue=True, creator=None, kind="video"
         d, base, creator = config.user_dir(ctx.uid()) / "jobs" / jid, dict(DEFAULTS), None
     opts = campaigns.approved_range({**base, **clean_options(options)})
     campaigns.validate_source(source, opts)
+    custom_campaign = None
+    if opts.get("custom_campaign_id"):
+        if opts.get("clip_mode") not in ("gaming", "irl"):
+            raise ValueError("Custom campaigns require Gaming or IRL clip type, not the GTA 6 preset.")
+        custom_campaign = custom_campaigns.snapshot(opts["custom_campaign_id"])
     d.mkdir(parents=True)
     if opts["min_len"] >= opts["max_len"]:
         opts["min_len"] = max(5, opts["max_len"] - 5)
     job = {"id": jid, "user": ctx.uid(), "kind": kind, "creator": creator, "dir": str(d), "created": time.time(), "source": source,
            "options": opts, "status": "queued", "stage": "Waiting", "progress": 0.0,
-           "title": source.get("name", ""), "uploader": "", "duration": 0, "clips": [], "error": None, "ai": {}}
+           "title": source.get("name", ""), "uploader": "", "duration": 0, "clips": [], "error": None, "ai": {},
+           "custom_campaign": custom_campaign}
     with _lock:
         _jobs[jid] = job
         _by_user.setdefault(job["user"], {})[jid] = job
@@ -1188,6 +1198,26 @@ def _run_job(job):
                 # Upstream game tags, but keep special GTA6 and Expedia campaign copy intact.
                 block_words = [dict(w, s=w["s"] + shift) for w in bw]
                 hashtags.apply(c, block_words, job["title"], job["uploader"], game_name)
+            # Custom campaigns are opt-in and independent of special GTA VI/Expedia presets.
+            # Each job stores a copy so later campaign edits do not silently rewrite old clips.
+            selected_campaign = job.get("custom_campaign")
+            if selected_campaign and o.get("clip_mode") in ("gaming", "irl"):
+                c["custom_campaign_id"] = selected_campaign["id"]
+                c["custom_campaign_name"] = selected_campaign["name"]
+                if selected_campaign.get("hook_text"):
+                    c["hook"] = selected_campaign["hook_text"]
+                if selected_campaign.get("description_text"):
+                    c["description"] = selected_campaign["description_text"]
+                    c["fixed_description"] = True
+                if selected_campaign.get("hashtags"):
+                    used = set()
+                    merged = []
+                    for tag in (selected_campaign["hashtags"] + (c.get("hashtags") or [])):
+                        tag = str(tag).lstrip("#")
+                        if tag and tag.casefold() not in used:
+                            merged.append(tag)
+                            used.add(tag.casefold())
+                    c["hashtags"] = merged[:12]
             job["clips"].append(c)
             futures.append((renders.submit(ctx.bind(make), c, list(words)), c))
         job["ai"] = {"model": model, "tokens": tokens, "note": "", "log": notes[-5:]}
