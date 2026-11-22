@@ -3123,8 +3123,18 @@ document.addEventListener("click", async e => {
     if (a === "appsetup") { S.setupOpen = d.p && S.setupOpen !== d.p ? d.p : ""; return drawSettings(); }
     if (a === "copytext") { await navigator.clipboard.writeText(d.t); return toast("Copied", "ok"); }
     if (a === "appsave") {
-      await send("/api/apps", {platform: d.p, client_id: $("#app_id").value, client_secret: $("#app_secret").value}, "PUT");
-      S.setupOpen = ""; S.status = await api("/api/status"); toast("Saved. People can connect now.", "ok"); return drawSettings();
+      const id = $("#app_id").value, secret = $("#app_secret").value;
+      const wasChanged = !!(id.trim() || secret.trim());
+      await send("/api/apps", {platform: d.p, client_id:id, client_secret:secret}, "PUT");
+      const verify = (await api("/api/apps"))[d.p];
+      if (!verify?.ready || (wasChanged && !verify.from_dashboard)) {
+        throw new Error("App keys could not be verified after saving. Check server data folder.");
+      }
+      S.setupOpen = "";
+      try { S.status = await api("/api/status"); } catch (_) { /* save was already verified */ }
+      await drawSettings();
+      toast(wasChanged ? "App keys saved on this server. Credentials verified." : "Existing app keys are already configured.", "ok");
+      return;
     }
     if (a === "bell") return openBell();
     if (a === "feedback") return openFeedback("bug");
