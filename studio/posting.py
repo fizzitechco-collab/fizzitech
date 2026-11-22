@@ -102,6 +102,10 @@ def on_clip_ready(job, clip):
         return
     if (job.get("options") or {}).get("clip_mode") == "expedia_ishowspeed":
         return
+    if job.get("custom_campaign"):
+        # Paid/branded campaign clips must be reviewed and posted explicitly.
+        # Do not inherit a creator's automatic publishing switch.
+        return
     if clip.get("score", 0) < c["post_min_score"]:
         return  # includes hand-made clips (score 0): those wait for you to press Post
     targets = list(c["accounts"])
