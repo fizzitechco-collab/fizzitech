@@ -475,6 +475,14 @@ class Session:
                  cta_enabled=self.settings.get("cta_enabled", False),
                  cta_creator_name=self.job.get("uploader") or self.job.get("title") or "",
                  status="queued", version=0, made_at=time.time())
+        # Apply creator-wide campaign copy only to ordinary clips. Existing GTA
+        # VI/Expedia automated campaign metadata takes priority.
+        if self.settings.get("clip_mode", "gaming") in ("gaming", "irl"):
+            if self.settings.get("overlay_hook_text"):
+                c["hook"] = self.settings["overlay_hook_text"]
+            if self.settings.get("description_text"):
+                c["description"] = self.settings["description_text"]
+                c["fixed_description"] = True
         with self.lock:
             self.job["clips"].append(c)
         jobs.save(self.job)
