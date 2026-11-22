@@ -3180,9 +3180,21 @@ document.addEventListener("click", async e => {
       await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body); toast("Re-making the clip…", "ok"); return tick();
     }
     if (a === "postnow" || a === "postqueue") {
-      const accs = $$("#clipdlg [data-pacc]:checked").map(i => i.value);
+      const accs = $("#clipdlg [data-pacc]:checked").map(i => i.value);
       if (!accs.length) return toast("Tick at least one account first.", "bad");
+      const job = jobOf(D.jid), clip = job?.clips.find(c => c.id === D.cid);
+      if (!clip || clip.status !== "done") throw new Error("This clip is not ready to post.");
+      const draft = clipPostText();
+      const changed = draft.title !== (clip.title || "") || draft.description !== (clip.description || "") ||
+                      draft.hashtags.join(" ") !== (clip.hashtags || []).join(" ");
+      const protectedCampaign = clip.campaign_review_required || !["gaming","irl"].includes(job.options?.clip_mode || "gaming");
+      if (changed && protectedCampaign) throw new Error("Protected campaign copy changed. Save and re-make this clip before posting.");
       if (a === "postnow" && !await ask("Post now?", `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
+      if (changed && !protectedCampaign) {
+        const updated = await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, draft, "PUT");
+        const ix = S.jobs.findIndex(j => j.id === updated.id);
+        if (ix >= 0) S.jobs[ix] = updated;
+      }
       await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs, now:a === "postnow"});
       toast(a === "postnow" ? "Posting now" : "Added to the queue", "ok"); return tick();
     }
