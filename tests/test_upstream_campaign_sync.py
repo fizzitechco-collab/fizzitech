@@ -26,12 +26,12 @@ def check(label, ok):
 
 try:
     check("Creator Big text strips controls and is at most 60 chars",
-          creators.clean_overlay_hook("  MY\\n   BIG   TEXT  ") == "MY BIG TEXT"
+          creators.clean_overlay_hook("  MY\n   BIG   TEXT  ") == "MY BIG TEXT"
           and len(creators.clean_overlay_hook("a" * 100)) == 60)
-    copy = "This is my post!\\n#Minecraft @creator https://example.com/clip"
+    copy = "This is my post!\n#Minecraft @creator https://example.com/clip"
     saved_copy = creators.clean_description_text(copy)
     check("Creator campaign description preserves hashtags, @mentions, URLs and line breaks",
-          "#Minecraft" in saved_copy and "@creator" in saved_copy and "\\n" in saved_copy
+          "#Minecraft" in saved_copy and "@creator" in saved_copy and "\n" in saved_copy
           and "https://example.com/clip" in saved_copy)
     creator_settings = creators._clean({"overlay_hook_text": "HI THERE",
                                        "description_text": saved_copy, "clip_quality": 0})
