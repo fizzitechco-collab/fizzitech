@@ -270,6 +270,7 @@ def _filter(layout, fg_h, roi=None, canvas_w=W):
 
 
 _qsv_ok = None
+_nvenc_ok = None  # optional RTX encoding for Auto >1080p only
 RENDER_SECONDS = 600      # one clip's video encode; far beyond normal, so a frozen encoder is stopped, not waited on
 
 
@@ -340,7 +341,7 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
 
 def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str,
                cancelled=None, quality=720, roi=None) -> dict:
-    global _qsv_ok
+    global _qsv_ok, _nvenc_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
     for f in config.FONTS_DIR.glob("*.ttf"):
@@ -360,6 +361,11 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
             "-filter_complex", fc, "-map", "[v]", "-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-pix_fmt"]
     encoders = []
+    if target_w > 1080 and _nvenc_ok is not False:
+        # Native 1440p/4K on HP Victus RTX laptops, with QSV and x264 fallback.
+        # Smaller existing exports retain their previous encoder order.
+        encoders.append(("nvenc", ["yuv420p", "-c:v", "h264_nvenc", "-preset", "p5",
+                                    "-rc", "vbr", "-cq", "19", "-b:v", "0"]))
     if _qsv_ok is not False:
         encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "18" if target_w >= 1080 else "21", "-preset", "medium"]))
     encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "17" if target_w >= 1080 else "19", "-preset", "medium" if target_w >= 1080 else "veryfast"]))
@@ -372,6 +378,8 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
                                           RENDER_SECONDS, cancelled=cancelled, idle_seconds=180)
             if label == "qsv":
                 _qsv_ok = True
+            if label == "nvenc":
+                _nvenc_ok = True
             break
         except segment_download.DownloadCancelled:
             raise
@@ -379,6 +387,8 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
             err = str(e)[-500:]
             if label == "qsv":
                 _qsv_ok = False
+            if label == "nvenc":
+                _nvenc_ok = False
     else:
         raise RuntimeError(f"Render failed: {err}")
     cover_t = min(1.2, (end - start) / 2)
