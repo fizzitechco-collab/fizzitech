@@ -435,7 +435,9 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
         for attempt in (1, 2):
             _check(cancelled)
             if stage:
-                if minimum:
+                if height == 0:
+                    stage(f"Auto resolution attempt {attempt}/2: highest available source up to {cap}p")
+                elif minimum:
                     stage((f"HD attempt {attempt}/2: requesting {minimum}-{cap}p source "
                            "(never silently using 360p)"))
                 else:
@@ -467,6 +469,9 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
                 "The 360p fallback was intentionally disabled so clips cannot silently look blurry. "
                 + "; ".join(_redact(e)[-240:] for e in errors[-2:])
             )
+        if height == 0:
+            # Auto must not download an entire multi-hour 4K recording as a fallback.
+            raise DownloadFailure("Auto-resolution segment unavailable. " + "; ".join(errors[-2:]))
         if config.env("PEAKCUT_FULL_SOURCE_FALLBACK", "0").strip() != "1" or cache_dir is None:
             raise DownloadFailure("; ".join(errors[-2:]))
         cache_dir = Path(cache_dir)
@@ -491,6 +496,8 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
         _remove_incomplete(out_dir, stem)
         if minimum:
             raise DownloadFailure("HD selected clip unavailable: " + _redact(str(e))) from None
+        if height == 0:
+            raise DownloadFailure("Auto-resolution clip could not be fetched: " + _redact(str(e))) from None
         raise DownloadFailure("Could not retrieve the selected 360p clip. "
                               "YouTube may require a current yt-dlp, Deno/EJS or access token. "
                               "Try a 15-second manual segment download or upload your own MP4. "
