@@ -54,7 +54,7 @@ def _mirror(p):
     job = jobs.get(p["job"])
     clip = next((c for c in job["clips"] if c["id"] == p["clip"]), None) if job else None
     if clip is not None:
-        clip.setdefault("posts", {})[p["id"]] = {k: p.get(k) for k in ("account_name", "platform", "status", "url", "due_at", "publish_at", "error")}
+        clip.setdefault("posts", {})[p["id"]] = {k: p.get(k) for k in ("account_name", "platform", "status", "url", "due_at", "publish_at", "instagram_publish_at", "error")}
         jobs.save(job)
 
 
@@ -75,13 +75,20 @@ def _next_slot(account_id, gap_min, cap):
     return t
 
 
-def enqueue(job, clip, account_ids, now=False, youtube_publish_at=None) -> list:
+def enqueue(job, clip, account_ids, now=False, youtube_publish_at=None, instagram_publish_at=None) -> list:
     c = creators.get(job["creator"]) or creators.DEFAULTS
-    # Only explicit user-scheduled YouTube posts are uploaded immediately and
-    # handed to YouTube's own scheduler. Legacy queued posts stay unchanged.
+    # YouTube remotely schedules a PRIVATE upload. Instagram only has our LOCAL
+    # worker: Meta's media_publish API cannot schedule a future release.
     publish_at = accounts.youtube_publish_time(youtube_publish_at) if youtube_publish_at else None
-    if publish_at and now:
-        raise ValueError("Use Add to queue to schedule YouTube; Post now publishes immediately.")
+    instagram_at = accounts.instagram_publish_time(instagram_publish_at) if instagram_publish_at else None
+    if (publish_at or instagram_at) and now:
+        raise ValueError("Use Add to queue when choosing a future publish time, not Post now.")
+    selected = [accounts.get(aid) for aid in dict.fromkeys(account_ids)]
+    selected = [acc for acc in selected if acc]
+    if publish_at and not any(a["platform"] == "youtube" for a in selected):
+        raise ValueError("Select your YouTube account to use YouTube scheduling.")
+    if instagram_at and not any(a["platform"] == "instagram" for a in selected):
+        raise ValueError("Select your Instagram account to schedule a Reel.")
     made = []
     with _lock:
         for aid in account_ids:
@@ -92,12 +99,17 @@ def enqueue(job, clip, account_ids, now=False, youtube_publish_at=None) -> list:
                    and p["status"] in OPEN + ("posted",) for p in _mine()):
                 continue  # never post the same clip to the same account twice
             yt_schedule = publish_at if acc["platform"] == "youtube" else None
-            # Upload to YouTube NOW, not when the chosen release date arrives.
-            # Other platforms still honor this local queue's posting cadence.
-            due = time.time() if now or yt_schedule else _next_slot(aid, c["post_gap_min"], c["daily_cap"])
+            ig_schedule = instagram_at if acc["platform"] == "instagram" else None
+            # YouTube uploads NOW; Instagram's LOCAL worker waits until its time.
+            from datetime import datetime
+            if ig_schedule:
+                due = datetime.fromisoformat(ig_schedule.replace("Z", "+00:00")).timestamp()
+            else:
+                due = time.time() if now or yt_schedule else _next_slot(aid, c["post_gap_min"], c["daily_cap"])
             p = {"id": secrets.token_hex(8), "user": ctx.uid(), "job": job["id"], "clip": clip["id"], "creator": job["creator"],
                  "account": aid, "account_name": acc["name"], "platform": acc["platform"], "status": "scheduled",
-                 "due_at": due, "publish_at": yt_schedule, "created": time.time(), "title": clip.get("title") or clip.get("hook") or "Clip",
+                 "due_at": due, "publish_at": yt_schedule, "instagram_publish_at": ig_schedule,
+                 "created": time.time(), "title": clip.get("title") or clip.get("hook") or "Clip",
                  "score": clip.get("score", 0), "tries": 0, "url": "", "remote_id": "", "error": None, "views": None}
             _posts.append(p)
             made.append(p)
@@ -271,6 +283,9 @@ def _post(p):
             p.pop("youtube_session", None)
             p.pop("youtube_offset", None)
         elif acc["platform"] == "instagram":
+            if p.get("instagram_publish_at") and time.time() > p["due_at"] + 900:
+                raise RuntimeError("Instagram schedule was missed by over 15 minutes while the server was offline. "
+                                   "Review this post, then press Retry to publish immediately.")
             rid, url = accounts.instagram_upload(acc, path, f"{title}\n\n{cap}", job["id"])
         elif acc["platform"] == "tiktok":
             rid, url = accounts.tiktok_upload(acc, path, f"{title}\n\n{cap}", creator["privacy"])
@@ -286,7 +301,13 @@ def _post(p):
     except Exception as e:  # noqa: BLE001
         p["tries"] += 1
         p["error"] = str(e)[-300:]
-        if p["tries"] < 3 and clip and acc:
+        overdue_instagram = bool(p.get("instagram_publish_at") and time.time() > p["due_at"] + 900)
+        overdue_youtube = False
+        if p.get("publish_at"):
+            from datetime import datetime
+            overdue_youtube = (datetime.fromisoformat(p["publish_at"].replace("Z", "+00:00")).timestamp()
+                               - time.time() < 1200)
+        if p["tries"] < 3 and clip and acc and not (overdue_instagram or overdue_youtube):
             p.update(status="scheduled", due_at=time.time() + 600)  # try again in 10 minutes
         else:
             p["status"] = "failed"
@@ -452,6 +473,10 @@ def retry(pid):
         p = next((p for p in _mine() if p["id"] == pid), None)
         if not p or p["status"] not in ("failed", "cancelled"):
             raise ValueError("Only failed or cancelled posts can be retried.")
+        # Retry after a missed Instagram release is an explicit request to
+        # publish NOW; never leave it stuck with the stale original schedule.
+        if p.get("instagram_publish_at"):
+            p["instagram_publish_at"] = None
         p.update(status="scheduled", due_at=time.time(), tries=0, error=None)
         _save()
     _mirror(p)
