@@ -1136,6 +1136,14 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
   color: #E9ECF0;
 }
 
+.apdiag{display:grid;gap:12px;margin-top:12px}
+.apdiag-status{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.apdiag-status strong,.apdiag-status span{font-size:12px;background:#1c222b;border:1px solid #303743;border-radius:9px;padding:7px 11px;color:#e1e6ee}
+.apdiag-notices{display:grid;gap:6px}.apdiag-notices p{display:flex;align-items:flex-start;gap:9px;color:#ffc5b9;font-size:12px;padding:10px 12px;border-radius:10px;background:#251b1a;border:1px solid #613329}
+.apdiag-notices svg,.apdiag-ok svg{height:15px;width:15px;flex:none;margin-top:2px}
+.apdiag-ok{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#b4edbf}
+.apdiag-recent{display:grid;gap:8px}.apdiag-recent>div{padding:9px 12px;border:1px solid #2d343e;background:#171b21;border-radius:10px;display:grid;grid-template-columns:1fr auto;column-gap:10px}
+.apdiag-recent b{font-size:12px;color:#f4f6f9}.apdiag-recent small{color:#aeb9c6}.apdiag-recent p{font-size:12px;color:#bdc6d2;grid-column:1/-1;margin-top:4px}
 </style>
 <style id="legend-make-clips-max-v1">
 #legend-clip-count-panel{background:#15171C!important;border:1px solid #31363D!important;color:#F4F5F7!important;border-radius:14px}
@@ -2563,9 +2571,34 @@ function drawCreatorForm() {
         <label class="f">Who can see posts (YouTube, TikTok)<select data-k="privacy">${opts({public:"Public", unlisted:"Unlisted", private:"Private"}, c.privacy)}</select></label>
         <label class="f">Campaign pay per 1,000 views ($)<input data-k="rate_per_1k" type="number" step="0.1" min="0" value="${c.rate_per_1k}"></label>
         <label class="f span">Line added to every post (credit, campaign tag)<input data-k="post_footer" value="${esc(c.post_footer)}" placeholder="Clipped from @streamer"></label></div></div>
+    <div class="card"><div class="card-head"><div><h2>Why isn't auto-post working?</h2>
+      <p class="help">Checks this creator's configuration and recent finished clips. Does not publish or re-render anything.</p></div>
+      <button type="button" class="btn sm" data-act="refreshpostdiag">Refresh</button></div>
+      <div id="autopost-diag" class="apdiag">Checking posting status…</div></div>
     <div class="card danger-card"><h2>Delete this creator</h2><p class="help">Removes ${esc(c.name)}, their settings and every video and clip filed under them. This cannot be undone.</p>
       <button class="btn danger" data-act="delcreator">${ic("trash")}Delete creator</button></div>
     <div class="savebar" id="savebar"><span>${ic("warn")}You have unsaved changes</span><button class="btn ghost" data-act="cdiscard">Discard</button><button class="btn primary" data-act="csave">${ic("check")}Save changes</button></div>`;
+  loadPostDiagnostics(c.id).catch(()=>{});
+}
+async function loadPostDiagnostics(cid) {
+  const target = $("#autopost-diag");
+  if (!target || !cid) return;
+  target.textContent = "Checking posting status…";
+  try {
+    const d = await api("/api/creators/" + encodeURIComponent(cid) + "/autopost-diagnostics");
+    if (!target.isConnected || creatorId() !== cid) return;
+    const notices = d.notices || [];
+    target.innerHTML = `<div class="apdiag-status"><strong>${d.enabled ? "Auto-post ON" : "Auto-post OFF"}</strong>
+        <span>${d.connected_destinations} connected destination(s)</span>
+        <span>Min clip score: ${Number(d.min_score)}</span>
+        <span>Global queue: ${d.paused ? "Paused" : "Running"}</span></div>
+      ${notices.length ? `<div class="apdiag-notices">${notices.map(x=>`<p>${ic("warn")}${esc(x)}</p>`).join("")}</div>` : `<p class="apdiag-ok">${ic("check")}Settings look eligible. Each newly finished clip still needs to meet the score; uploading can fail if a platform rejects credentials, permissions or video.</p>`}
+      <h4>Recent completed clips</h4>
+      ${d.recent.length ? `<div class="apdiag-recent">${d.recent.map(x=>`<div><b>${esc(x.title)}</b><small>Score ${Number(x.score) || 0}</small><p>${esc(x.reason)}</p></div>`).join("")}</div>` : '<p class="help">No finished clips under this creator yet. New auto-posting applies to completed clips from this workspace.</p>'}
+      <p class="help">Clips made with No creator, or before enabling auto-post, are not retroactively published. For failed posts, check Home → Post queue and press Retry after fixing the destination.</p>`;
+  } catch(err) {
+    if (target.isConnected) target.textContent = "Could not read posting diagnostics: " + err.message;
+  }
 }
 const creatorForm = () => { const d = {}; $$("#cform [data-k]").forEach(i => { if (i.type === "radio") { if (i.checked) d[i.dataset.k] = i.value; } else d[i.dataset.k] = i.type === "checkbox" ? i.checked : i.value; }); d.accounts = $$("#cform [data-acc]:checked").map(i => i.value); return d; };
 const dirty = on => $("#savebar")?.classList.toggle("on", on);
@@ -3222,6 +3255,7 @@ document.addEventListener("click", async e => {
     if (a === "acctmenu") return openAcct();
     if (a === "bellread") { await markRead(); return openBell().then(openBell); }
     if (a === "ntgo") { closePops(); const l = d.link || ""; if (l.startsWith("/app")) { const [v, tab] = fromPath(l); return go(v, tab); } if (l.startsWith("/")) location.href = l; return; }
+    if (a === "refreshpostdiag") return loadPostDiagnostics(creatorId());
     if (a === "csave") return void await saveCreator();
     if (a === "cdiscard") { drawCreatorForm(); return toast("Changes discarded"); }
     if (a === "pause") { await send("/api/settings", {paused:!S.overview.paused}, "PUT"); return loadOverview(); }
