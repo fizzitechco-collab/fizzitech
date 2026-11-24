@@ -51,6 +51,9 @@ jobs:
       - name: Source-matched 4K resolution — offline checks
         run: python tests/test_source_quality.py
 
+      - name: Protected campaign posting and original-copy confirmation
+        run: node tests/test_protected_campaign_post.js
+
       - name: Post now and queue account selection regression
         run: node tests/test_post_now_selector.js
 
