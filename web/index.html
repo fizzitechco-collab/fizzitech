@@ -2903,6 +2903,17 @@ function clipPostText() {
   return {title:v("title"), description:v("description"), hashtags:v("hashtags").split(/\s+/).map(h=>h.replace(/^#+/,"")).filter(Boolean)};
 }
 
+// Compare actual publishing copy, not line-ending or hashtag-prefix formatting.
+function changedPostFields(draft, clip) {
+  const norm = v => String(v ?? "").replace(/\r\n?/g, "\n").trim();
+  const tags = v => (Array.isArray(v) ? v : []).map(h => norm(h).replace(/^#+/, "")).filter(Boolean).join(" ");
+  return [
+    ["title", norm(draft.title), norm(clip.title)],
+    ["description", norm(draft.description), norm(clip.description)],
+    ["hashtags", tags(draft.hashtags), tags(clip.hashtags)]
+  ].filter(([, actual, saved]) => actual !== saved).map(([field]) => field);
+}
+
 /* ============================================================ render + polling */
 function render() {
   drawShell(); drawJobs(); drawStream(); drawSelBar();
@@ -3307,11 +3318,20 @@ document.addEventListener("click", async e => {
       const job = jobOf(D.jid), clip = job?.clips.find(c => c.id === D.cid);
       if (!clip || clip.status !== "done") throw new Error("This clip is not ready to post.");
       const draft = clipPostText();
-      const changed = draft.title !== (clip.title || "") || draft.description !== (clip.description || "") ||
-                      draft.hashtags.join(" ") !== (clip.hashtags || []).join(" ");
+      const modifiedFields = changedPostFields(draft, clip);
+      const changed = modifiedFields.length > 0;
       const protectedCampaign = clip.campaign_review_required || !["gaming","irl"].includes(job.options?.clip_mode || "gaming");
-      if (changed && protectedCampaign) throw new Error("Protected campaign copy changed. Save and re-make this clip before posting.");
-      if (a === "postnow" && !await ask("Post now?", `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
+      if (changed && protectedCampaign) {
+        // Do not modify approved campaign text. Queue the original metadata only
+        // after the user explicitly agrees to discard unsaved editor changes.
+        const action = a === "postnow" ? "Post now" : "Add to queue";
+        const label = modifiedFields.join(", ");
+        const approved = await ask("Use original saved campaign text?",
+          `You changed ${label}, but this protected clip must keep its saved campaign copy. ${action} with the ORIGINAL title, description and hashtags instead? Your unsaved edits will NOT be posted.`,
+          a === "postnow" ? "Post original text" : "Queue original text");
+        if (!approved) return;
+      } else if (a === "postnow" && !await ask("Post now?",
+        `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
       if (changed && !protectedCampaign) {
         const updated = await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, draft, "PUT");
         const ix = S.jobs.findIndex(j => j.id === updated.id);
