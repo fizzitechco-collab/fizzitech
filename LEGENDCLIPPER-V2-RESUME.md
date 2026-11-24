@@ -61,6 +61,11 @@ Updated: 2026-11-24
 - If UI still errors, request the affected screen and first red Chrome/Edge F12 Console line; do not claim that any platform upload problem was fixed by this frontend hardening.
 - GitHub branch remains `legend/facecam-preview-audio-repair`; sister's Victus remains intentionally unupdated.
 
+## November 24: Post now safe original campaign copy
+- User experienced "Protected campaign copy changed. Save and re-make this clip before posting." after the Post now account-selector fix. This is a frontend guard for GTA VI / legacy Expedia protected metadata, NOT a provider API rejection.
+- `web/index.html` now normalizes harmless whitespace/CRLF/hashtag-prefix differences before comparing editor draft with stored post copy. If protected title, description or hashtags genuinely differ, Post now and Add to queue offer explicit "Post original text / Queue original text" confirmation. If approved, editor reverts to stored title/description/hashtags and queues original saved metadata, **without rerendering and without mutating protected campaign text**. Cancel retains editor draft, queues nothing. To publish changed protected content, user still must use the existing review/remake workflow.
+- `tests/test_protected_campaign_post.js` plus CI regression verify the behavior. Normal gaming/IRL free text edit-and-post workflow remains unchanged. Genuine platform permissions and successful live uploads are separate checks.
+
 ## Deferred work
 - Original upstream PeakCut has no standalone Custom Campaigns manager in its current `main`; the independent one was implemented above. Further upstream sync (other modules, complete editor/B-roll/analytics) is still pending; do not assume full PeakCut/SupoClip feature parity.
 - Broader Settings UI polish may be addressed in a later fix. AI key saving logic itself was fixed and 18 offline tests passed.
