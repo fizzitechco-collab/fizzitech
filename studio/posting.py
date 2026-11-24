@@ -49,6 +49,11 @@ def _day(t):
     return time.strftime("%Y-%m-%d", time.localtime(t))
 
 
+def _iso_time(utc_time: str) -> float:
+    from datetime import datetime
+    return datetime.fromisoformat(utc_time.replace("Z", "+00:00")).timestamp()
+
+
 def _mirror(p):
     """Copy the post's state onto its clip so the clip card can show it."""
     job = jobs.get(p["job"])
@@ -96,14 +101,13 @@ def enqueue(job, clip, account_ids, now=False, youtube_publish_at=None, instagra
             if not acc:
                 continue
             if any(p["job"] == job["id"] and p["clip"] == clip["id"] and p["account"] == aid
-                   and p["status"] in OPEN + ("posted",) for p in _mine()):
+                   and p["status"] in OPEN + ("posted", YOUTUBE_SCHEDULED) for p in _mine()):
                 continue  # never post the same clip to the same account twice
             yt_schedule = publish_at if acc["platform"] == "youtube" else None
             ig_schedule = instagram_at if acc["platform"] == "instagram" else None
             # YouTube uploads NOW; Instagram's LOCAL worker waits until its time.
-            from datetime import datetime
             if ig_schedule:
-                due = datetime.fromisoformat(ig_schedule.replace("Z", "+00:00")).timestamp()
+                due = _iso_time(ig_schedule)
             else:
                 due = time.time() if now or yt_schedule else _next_slot(aid, c["post_gap_min"], c["daily_cap"])
             p = {"id": secrets.token_hex(8), "user": ctx.uid(), "job": job["id"], "clip": clip["id"], "creator": job["creator"],
@@ -283,7 +287,7 @@ def _post(p):
             p.pop("youtube_session", None)
             p.pop("youtube_offset", None)
         elif acc["platform"] == "instagram":
-            if p.get("instagram_publish_at") and time.time() > p["due_at"] + 900:
+            if p.get("instagram_publish_at") and time.time() > _iso_time(p["instagram_publish_at"]) + 900:
                 raise RuntimeError("Instagram schedule was missed by over 15 minutes while the server was offline. "
                                    "Review this post, then press Retry to publish immediately.")
             rid, url = accounts.instagram_upload(acc, path, f"{title}\n\n{cap}", job["id"])
@@ -301,12 +305,10 @@ def _post(p):
     except Exception as e:  # noqa: BLE001
         p["tries"] += 1
         p["error"] = str(e)[-300:]
-        overdue_instagram = bool(p.get("instagram_publish_at") and time.time() > p["due_at"] + 900)
+        overdue_instagram = bool(p.get("instagram_publish_at") and time.time() > _iso_time(p["instagram_publish_at"]) + 900)
         overdue_youtube = False
         if p.get("publish_at"):
-            from datetime import datetime
-            overdue_youtube = (datetime.fromisoformat(p["publish_at"].replace("Z", "+00:00")).timestamp()
-                               - time.time() < 1200)
+            overdue_youtube = (_iso_time(p["publish_at"]) - time.time() < 1200)
         if p["tries"] < 3 and clip and acc and not (overdue_instagram or overdue_youtube):
             p.update(status="scheduled", due_at=time.time() + 600)  # try again in 10 minutes
         else:
