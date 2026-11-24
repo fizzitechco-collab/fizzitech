@@ -51,6 +51,9 @@ jobs:
       - name: Source-matched 4K resolution — offline checks
         run: python tests/test_source_quality.py
 
+      - name: Post now and queue account selection regression
+        run: node tests/test_post_now_selector.js
+
       - name: Verify nullable frontend lists never crash AI or posting UI
         run: node tests/test_frontend_null_arrays.js
 
