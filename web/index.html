@@ -1548,7 +1548,7 @@ async function openBell() {
   try {
     const d = await api("/api/notifications");
     p.innerHTML = `<div class="pop-head"><h3>Notifications</h3>${d.unread ? `<button data-act="bellread">Mark all as read</button>` : ""}</div>
-      ${d.items.length ? `<div class="pop-list">${d.items.map(n => `<button class="nt k-${esc(n.kind)} ${n.read ? "" : "new"}" data-act="ntgo" data-link="${esc(n.link)}">
+      ${safeList(d.items).length ? `<div class="pop-list">${safeList(d.items).map(n => `<button class="nt k-${esc(n.kind)} ${n.read ? "" : "new"}" data-act="ntgo" data-link="${esc(n.link)}">
         <i>${ic(NT_ICON[n.kind] || "bell")}</i><span class="tx"><b>${esc(n.title)}</b>${n.body ? `<span>${esc(n.body)}</span>` : ""}<small>${ago(n.t)}</small></span></button>`).join("")}</div>`
         : `<div class="pop-empty">${ic("bell")}Nothing yet. Recordings, finished clips and posts that need a look show up here.</div>`}`;
     if (d.unread) setTimeout(markRead, 1500);
@@ -1619,7 +1619,7 @@ function updateHow() {
   const cmd = (label, text) => `<h3>${label}</h3><div class="cmd"><code>${esc(text)}</code><button class="btn sm" type="button" data-act="copytext" data-t="${esc(text)}">${ic("copy")}Copy</button></div>`;
   d.innerHTML = `<form method="dialog" class="dlg upd"><h2>${up.restart ? "The new version is ready" : "A new version of Legend Clipper is out"}</h2>
     <p class="help">${up.restart ? "The new files are already in the Legend Clipper folder. <b>Close Legend Clipper and start it again</b> to use them." : `You're on <b>${esc(up.current)}</b>. ${up.behind ? `${up.behind} update${up.behind === 1 ? " has" : "s have"} been added since.` : "Newer changes have been added since."}`} Your settings, keys and clips stay as they are.</p>
-    ${up.notes.length ? `<ul>${up.notes.map(n => `<li>${esc(n.title)} <small>${esc(n.date)}</small></li>`).join("")}</ul>` : ""}
+    ${safeList(up.notes).length ? `<ul>${safeList(up.notes).map(n => `<li>${esc(n.title)} <small>${esc(n.date)}</small></li>`).join("")}</ul>` : ""}
     ${up.restart ? "" : cmd("Ask your AI coding assistant (Claude, Cursor, Copilot...)", ai) + cmd("Or run it yourself, in the Legend Clipper folder", "git pull && pip install -r requirements.txt")}
     <p class="sub">${up.restart ? "" : "Then stop Legend Clipper and start it again. With Docker, run <code>git pull && docker compose up -d --build</code> instead. "}<a class="lnk" href="${esc(up.url)}" target="_blank" rel="noopener">See every change on GitHub</a></p>
     <div class="dlg-foot"><button class="btn" value="later">Remind me next version</button><button class="btn primary" value="ok" autofocus>Got it</button></div></form>`;
@@ -1645,8 +1645,8 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
   put($("#nav"), nav("overview", navIc("home", "overview"), "Home") +
     nav("auto-clipping", navIc("bolt", "auto-clipping"), "Auto Clipping") +
     nav("campaigns", navIc("folder", "campaigns"), "Custom Campaigns") +
-    nav("library", navIc("film", "library"), "All videos", (() => { const w = S.jobs.filter(j => ["queued", "running"].includes(j.status)).length;
-      return w ? `<span class="working" title="${w} working now"><i></i>${w} working</span>` : S.jobs.length ? `<span class="count">${S.jobs.length}</span>` : ""; })()) +
+    nav("library", navIc("film", "library"), "All videos", (() => { const w = safeList(S.jobs).filter(j => ["queued", "running"].includes(j.status)).length;
+      return w ? `<span class="working" title="${w} working now"><i></i>${w} working</span>` : safeList(S.jobs).length ? `<span class="count">${safeList(S.jobs).length}</span>` : ""; })()) +
     `<h4><span>Creators</span></h4>` +
     safeList(S.creators).map(c => nav("c:" + c.id, cav(c), c.name,
       c.live_job ? `<span class="sb-tag rec" title="Recording now"><i></i>Rec</span>`
@@ -1661,7 +1661,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
       <span class="who">${S.status.accounts === false ? `<b>Settings</b><span>AI key, connected apps</span>` : `<b>${esc(S.status.user.name)}</b><span>${esc(S.status.user.email)}</span>`}</span></button>
       <button class="icon-btn bell" data-act="bell" title="Notifications" aria-label="Notifications${S.status.unread ? `, ${S.status.unread} new` : ""}" aria-haspopup="dialog">${ic("bell")}${S.status.unread ? `<span class="dotn">${S.status.unread > 9 ? "9+" : S.status.unread}</span>` : ""}</button></div>` : ""));
   const c = creator();
-  const recording = S.creators.filter(x => x.live_job).length;
+  const recording = safeList(S.creators).filter(x => x.live_job).length;
   let title = {overview:"Home", library:"All videos", "auto-clipping":"GTA 6 Auto Clipping", campaigns:"Custom Campaigns", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
   if (S.view === "usage") sub = "What the AI has been used for.";
   if (S.view === "overview") sub = `${greeting()}. ${S.creators.length} creator${S.creators.length === 1 ? "" : "s"}${recording ? `, ${recording} recording now` : ""}.`;
@@ -1717,7 +1717,7 @@ function remember(v, tab, how = "push") {
 }
 addEventListener("popstate", () => { const [v, tab] = fromPath(location.pathname); go(v, tab, true); });
 function go(v, tab, fromHistory) {
-  if (v.startsWith("c:") && !S.creators.some(c => "c:" + c.id === v)) v = "overview";
+  if (v.startsWith("c:") && !safeList(S.creators).some(c => "c:" + c.id === v)) v = "overview";
   S.view = v; if (tab) S.ctab = tab; else if (!v.startsWith("c:")) S.ctab = "clips";
   if (v === "settings") S.stab = setTabs().some(x => x[0] === tab) ? tab : setTabs()[0][0];
   if (!fromHistory) remember(v, v.startsWith("c:") ? S.ctab : v === "settings" ? S.stab : null);
@@ -2644,7 +2644,7 @@ function nextSteps(o) {
 }
 function drawOverview() {
   const o = S.overview, box = $("#ov"); if (!o || !box) return;
-  const sum = k => o.creators.reduce((a, r) => a + r[k], 0);
+  const sum = k => safeList(o.creators).reduce((a, r) => a + (r[k] || 0), 0);
   const d14 = k => (o.daily || []).reduce((a, d) => a + d[k], 0);
   const state = r => r.state === "recording" ? `<span class="pill live"><span class="dot"></span>Recording</span>` : r.state === "waiting" ? `<span class="pill warn">Waiting for live</span>` : `<span class="pill">Idle</span>`;
   const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}</span>`;
@@ -2665,12 +2665,12 @@ function drawOverview() {
     ${steps.length ? `<div class="card"><div class="card-head"><div><h2>Next steps</h2><p class="sub">Finish setting up Legend Clipper</p></div></div>
       <div class="steps across">${steps.map((x, i) => `<button class="step" data-act="step" data-to="${esc(x[2])}"><span class="n">${i + 1}</span><span><b>${esc(x[0])}</b><span class="d">${esc(x[1])}</span></span>${ic("arrowr")}</button>`).join("")}</div></div>` : ""}
     <div class="card"><div class="card-head"><div><h2>Creators</h2><p class="sub">Each creator's status and results</p></div></div>
-      ${o.creators.length ? `<div class="scroll"><table><tr><th>Creator</th><th>Status</th><th>Auto-post</th><th class="num">Clips today</th><th class="num">Posted today</th><th class="num">Waiting</th><th class="num">Failed</th><th class="num">Views</th><th class="num">Est. $</th></tr>
+      ${safeList(o.creators).length ? `<div class="scroll"><table><tr><th>Creator</th><th>Status</th><th>Auto-post</th><th class="num">Clips today</th><th class="num">Posted today</th><th class="num">Waiting</th><th class="num">Failed</th><th class="num">Views</th><th class="num">Est. $</th></tr>
       ${safeList(o.creators).map(r => `<tr><td><a class="lnk" href="#" data-act="go" data-v="c:${esc(r.id)}">${esc(r.name)}</a></td><td>${state(r)}</td><td>${r.autopost ? `<span class="pill ok">On</span>` : `<span class="pill">Off</span>`}</td><td class="num">${r.clips_today} <span class="sub">/ ${r.clips_total}</span></td><td class="num">${r.posted_today} <span class="sub">/ ${r.posted_total}</span></td><td class="num">${r.queued}</td><td class="num">${r.failed}</td><td class="num">${r.views.toLocaleString()}</td><td class="num">${r.earnings.toFixed(2)}</td></tr>`).join("")}</table></div>`
       : `<div class="empty"><img src="/brand/legend-clipper-icon.svg?v=3" alt=""><b>No creators yet</b>Add one to give each streamer their own workspace.</div>`}</div>
     <div class="card"><div class="card-head"><div><h2>Post queue</h2><p class="sub">${o.paused ? "Paused. Recording and clipping carry on; nothing is posted." : "Queued clips go out at their scheduled time."}</p></div>
         <button class="btn ${o.paused ? "primary" : ""}" data-act="pause">${ic(o.paused ? "play" : "pause")}${o.paused ? "Resume posting" : "Pause all posting"}</button></div>
-      ${o.posts.length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
+      ${safeList(o.posts).length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
       ${safeList(o.posts).map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "–"}</td>
         <td class="c-act" style="text-align:right">${p.status === "scheduled" ? `<button class="btn sm" data-act="pcancel" data-id="${p.id}">Cancel</button>` : p.status === "failed" ? `<button class="btn sm" data-act="pretry" data-id="${p.id}">Retry</button>` : ""}</td></tr>`).join("")}</table></div>`
       : `<p class="help">Nothing queued or posted yet.</p>`}</div>`);
@@ -2923,8 +2923,8 @@ async function tick() {
     }
     const {jobs, creators, accounts} = got;
     // a server from before multi-channel support sends only `channel`: show it as that platform's channel
-    creators.forEach(c => { if (!c.channels) { const u = c.channel || "", k = /youtu/i.test(u) ? "youtube" : /twitch/i.test(u) ? "twitch" : /kick/i.test(u) ? "kick" : ""; c.channels = k ? {[k]: u} : {}; } });
-    S.jobs = jobs; S.creators = creators; S.accounts = accounts;
+    safeList(creators).forEach(c => { if (!c.channels) { const u = c.channel || "", k = /youtu/i.test(u) ? "youtube" : /twitch/i.test(u) ? "twitch" : /kick/i.test(u) ? "kick" : ""; c.channels = k ? {[k]: u} : {}; } });
+    S.jobs = safeList(jobs); S.creators = safeList(creators); S.accounts = safeList(accounts);
     if (got.ai) S.status.ai = got.ai;
     if (got.unread != null) S.status.unread = got.unread;
     if (S.view === "overview") { S.overview = await api("/api/overview"); S.ovAt = Date.now(); }
