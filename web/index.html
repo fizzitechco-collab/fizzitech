@@ -3330,6 +3330,13 @@ document.addEventListener("click", async e => {
           `You changed ${label}, but this protected clip must keep its saved campaign copy. ${action} with the ORIGINAL title, description and hashtags instead? Your unsaved edits will NOT be posted.`,
           a === "postnow" ? "Post original text" : "Queue original text");
         if (!approved) return;
+        // Make the editor reflect exactly the saved copy being submitted.
+        const savedText = {title: clip.title || "", description: clip.description || "",
+          hashtags: (Array.isArray(clip.hashtags) ? clip.hashtags : []).join(" ")};
+        for (const [field, value] of Object.entries(savedText)) {
+          const input = $("#clipdlg [data-f='" + field + "']");
+          if (input) input.value = value;
+        }
       } else if (a === "postnow" && !await ask("Post now?",
         `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
       if (changed && !protectedCampaign) {
