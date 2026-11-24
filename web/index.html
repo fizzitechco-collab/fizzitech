@@ -1178,6 +1178,11 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 .lc-star:hover ~ .lc-star{opacity:.9}
 </style>
 
+<style id="legend-post-scheduling-v1">
+.lc-publish-dates{display:grid;gap:10px;margin:12px 0;padding:12px;border:1px solid #323b4a;background:#151920;border-radius:12px}
+.lc-publish-dates .f{margin:0}.lc-publish-dates .f input{margin:6px 0;max-width:320px}
+.lc-publish-dates .hint{font-size:12px;line-height:1.45;color:#aab7ca}
+</style>
 <style id="legend-custom-campaigns-v1">
 .lc-c-intro{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:12px 0 24px}
 .lc-c-intro h2{font-size:26px;font-weight:750;color:#f6f7fa}
@@ -2647,7 +2652,12 @@ function drawOverview() {
   const sum = k => safeList(o.creators).reduce((a, r) => a + (r[k] || 0), 0);
   const d14 = k => (o.daily || []).reduce((a, d) => a + d[k], 0);
   const state = r => r.state === "recording" ? `<span class="pill live"><span class="dot"></span>Recording</span>` : r.state === "waiting" ? `<span class="pill warn">Waiting for live</span>` : `<span class="pill">Idle</span>`;
-  const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}</span>`;
+  const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>`
+    : p.status === "youtube_scheduled" ? `<span class="pill ok">YouTube scheduled</span><div class="sub">Release ${when(Date.parse(p.publish_at)/1000)} · managed by YouTube</div>`
+    : p.status === "failed" ? `<span class="pill bad">Failed</span>`
+    : p.status === "posting" ? `<span class="pill warn">Uploading now</span>`
+    : p.instagram_publish_at ? `<span class="pill warn">Instagram locally queued</span><div class="sub">${clock(p.due_at)} · keep server running</div>`
+    : `<span class="pill warn">${clock(p.due_at)}</span>`;
   const steps = nextSteps(o);
   put(box, `<div class="tiles">
       <div class="tile"><i>${ic("radio")}</i><b>${o.recording}</b><span>Recording now</span></div>
@@ -2885,7 +2895,15 @@ function drawClipDlg(full) {
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
         ${safeList(S.accounts).length ? `<div class="row">${safeList(S.accounts).map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
-          <div class="row"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>`
+          <div class="lc-publish-dates">
+            ${safeList(S.accounts).some(a=>a.platform==="youtube") ? `<label class="f">YouTube publish date / time (optional)
+              <input type="datetime-local" data-schedule="youtube" aria-label="YouTube scheduled publish date and time">
+              <span class="hint">Your local time · at least 20 min ahead. Uploads privately NOW; wait until YouTube scheduled is confirmed before closing LegendClipper.</span></label>` : ""}
+            ${safeList(S.accounts).some(a=>a.platform==="instagram") ? `<label class="f">Instagram Reel publish date / time (optional)
+              <input type="datetime-local" data-schedule="instagram" aria-label="Instagram scheduled publish date and time">
+              <span class="hint">Your local time · at least 5 min ahead. Instagram runs on LegendClipper's LOCAL queue: keep server and laptop awake until published.</span></label>` : ""}
+          </div>
+          <div class="row"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue / Schedule</button></div>`
           : `<p class="help">No accounts connected yet. Connect one in Settings.</p>`}
         <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line)">
           ${c.status === "done" && !c.local_deleted_at ? `<a class="btn" href="${m}${esc(c.file)}?download=1">${ic("down")}Download</a>` : ""}
@@ -2904,6 +2922,15 @@ function clipPostText() {
 }
 
 // Compare actual publishing copy, not line-ending or hashtag-prefix formatting.
+// datetime-local uses the user's browser timezone; send explicit UTC to backend.
+function clipScheduleUTC(platform) {
+  const raw = $("#clipdlg [data-schedule='" + platform + "']")?.value?.trim() || "";
+  if (!raw) return null;
+  const stamp = new Date(raw);
+  if (!Number.isFinite(stamp.getTime())) throw new Error("Choose a valid " + platform + " schedule date and time.");
+  return stamp.toISOString();
+}
+
 function changedPostFields(draft, clip) {
   const norm = v => String(v ?? "").replace(/\r\n?/g, "\n").trim();
   const tags = v => (Array.isArray(v) ? v : []).map(h => norm(h).replace(/^#+/, "")).filter(Boolean).join(" ");
@@ -3315,6 +3342,11 @@ document.addEventListener("click", async e => {
     if (a === "postnow" || a === "postqueue") {
       const accs = $$("#clipdlg [data-pacc]:checked").map(i => i.value);
       if (!accs.length) return toast("Tick at least one account first.", "bad");
+      const youtube_publish_at = clipScheduleUTC("youtube");
+      const instagram_publish_at = clipScheduleUTC("instagram");
+      if (a === "postnow" && (youtube_publish_at || instagram_publish_at)) {
+        throw new Error("Choose Add to queue / Schedule when a future publish date is selected.");
+      }
       const job = jobOf(D.jid), clip = job?.clips.find(c => c.id === D.cid);
       if (!clip || clip.status !== "done") throw new Error("This clip is not ready to post.");
       const draft = clipPostText();
@@ -3344,8 +3376,14 @@ document.addEventListener("click", async e => {
         const ix = S.jobs.findIndex(j => j.id === updated.id);
         if (ix >= 0) S.jobs[ix] = updated;
       }
-      await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs, now:a === "postnow"});
-      toast(a === "postnow" ? "Posting now" : "Added to the queue", "ok"); return tick();
+      const result = await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs,
+        now:a === "postnow", youtube_publish_at, instagram_publish_at});
+      const notice = result.youtube_remote && result.instagram_local
+        ? "YouTube uploading for remote schedule; Instagram locally scheduled. Keep server running until YouTube upload finishes AND Instagram posts."
+        : result.youtube_remote ? "YouTube upload queued now. Wait for 'YouTube scheduled' confirmation before shutting down."
+        : result.instagram_local ? "Instagram scheduled locally. Server and laptop MUST stay on until the Reel is posted."
+        : a === "postnow" ? "Posting now" : "Added to the queue";
+      toast(notice, "ok"); return tick();
     }
   } catch (err) { b.disabled = false; toast(err.message, "bad"); }
 });
