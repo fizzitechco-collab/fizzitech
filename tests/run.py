@@ -57,6 +57,7 @@ def main() -> int:
                 ("API and connected-app key saving", ["tests/test_keys_persistence.py"]),
                 ("upstream creator campaign copy and post text", ["tests/test_upstream_campaign_sync.py"]),
                 ("Custom Campaigns dashboard, ownership and AI matching", ["tests/test_custom_campaigns.py"]),
+                ("Auto-post eligibility and diagnostics", ["tests/test_autopost_diagnostics.py"]),
                 ("no sign-in, and the AI key from the dashboard", ["tests/test_local.py"]),
                 ("Hindi and Urdu captions in Roman letters", ["tests/test_roman.py"]),
                 ("connecting YouTube, Instagram and TikTok", ["tests/test_connect.py"]),
