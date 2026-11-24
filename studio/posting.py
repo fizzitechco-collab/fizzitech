@@ -136,11 +136,11 @@ def on_clip_ready(job, clip):
     allowed, reason, targets = auto_post_check(job, clip, c)
     if not allowed:
         if c:
-            creators.log(c["id"], f"Auto-post skipped: {reason}")
+            creators.log(job.get("creator"), f"Auto-post skipped: {reason}")
         return
     made = enqueue(job, clip, targets, now=bool(c.get("gta_auto_sequential")))
     if made:
-        creators.log(c["id"], f"Queued for {len(made)} account(s): {clip.get('title') or clip.get('hook')}")
+        creators.log(job.get("creator"), f"Queued for {len(made)} account(s): {clip.get('title') or clip.get('hook')}")
 
 
 def diagnostics(creator_id: str) -> dict:
