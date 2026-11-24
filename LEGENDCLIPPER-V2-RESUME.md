@@ -54,6 +54,13 @@ Updated: 2026-11-24
 - Actual Instagram/TikTok/YouTube live authorization, platform permissions and uploads still need diagnosis from Home -> Post queue error text. Never request API keys or login tokens in chat.
 - Important user clarification: user ultimately wants a Content Rewards **real available campaigns** listing, NOT the previously implemented self-created Custom Campaigns manager. The latter remains in the feature branch but does not satisfy that requirement. Do not describe it as a Content Rewards integration.
 
+## November 24: JavaScript null-array crash defensive fix
+- User reported: `Cannot read properties of null (reading 'map')` (without specifying which page).
+- Frontend `web/index.html` now uses `safeList(value)` for nullable AI models/providers, connected posting accounts, creator navigation, notification lists, auto-post diagnostics, recent UI list items, and normalized sync response lists. Prevents generic null-map crash but does not establish the root cause of the provider auto-post failure.
+- New `tests/test_frontend_null_arrays.js` checks null-safe helper and critical UI source guards. Added to GitHub Actions workflow using Node. Prior release version on Windows must pull and refresh.
+- If UI still errors, request the affected screen and first red Chrome/Edge F12 Console line; do not claim that any platform upload problem was fixed by this frontend hardening.
+- GitHub branch remains `legend/facecam-preview-audio-repair`; sister's Victus remains intentionally unupdated.
+
 ## Deferred work
 - Original upstream PeakCut has no standalone Custom Campaigns manager in its current `main`; the independent one was implemented above. Further upstream sync (other modules, complete editor/B-roll/analytics) is still pending; do not assume full PeakCut/SupoClip feature parity.
 - Broader Settings UI polish may be addressed in a later fix. AI key saving logic itself was fixed and 18 offline tests passed.
