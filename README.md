@@ -81,6 +81,14 @@ PEAKCUT_AI_KEY=your-key-here
   tokens each video took.
 - Speech to text does not use the AI service. It runs on your own machine, so audio never leaves it.
 
+## Troubleshooting automatic posting
+
+Open **Creator → Setup → Why isn't auto-post working? → Refresh**. The diagnostic shows whether the creator has Auto-post on, approved publishing rights, connected posting destinations, and a global queue pause. It also lists recent completed clip scores and explains why each was skipped or what error the destination returned.
+
+For automatic posting, **select a creator workspace when starting a new clip job**, then enable **Creator → Setup → Posting → Post new clips automatically**, tick the destination account(s), tick the permission confirmation and choose a reasonable score threshold. Clips made under `No creator` do not have a destination. Auto-post runs only when **new clips finish**, not retroactively on old videos. Do not disable publisher permission safeguards; only upload footage you are authorized to publish.
+
+Use **Home → Post queue** for actual upload results. If a provider rejects the post (missing TikTok video.publish permission, Instagram professional account/media-fetch access, expired OAuth sign-in or an unreachable public HTTPS URL), its error appears there after retries. Clicking Retry after correcting the account is a manual action; queued posts still respect account spacing/daily limits. Creating a brand/paid campaign does not automatically authorize unattended publishing.
+
 ## LegendClipper improvements (feature branch)
 
 - **Facecam from the source video:** after adding a video link, choose a real frame at a timestamp; draw, move, and resize the webcam rectangle. The final 9:16 render puts the facecam above center-cropped gameplay. You can also skip facecam.
