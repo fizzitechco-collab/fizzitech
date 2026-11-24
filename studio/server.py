@@ -1671,21 +1671,10 @@ def add_posts(body: dict = Body(...)):
     clip = next((c for c in job["clips"] if c["id"] == body.get("clip")), None) if job else None
     if not clip or clip.get("status") != "done":
         raise HTTPException(404, "That clip is not ready")
-    ids = body.get("accounts")
-    if not isinstance(ids, list):
-        raise HTTPException(400, "Select your connected posting accounts.")
-    try:
-        made = posting.enqueue(job, clip, [str(a) for a in ids][:20],
-                               now=bool(body.get("now")),
-                               youtube_publish_at=body.get("youtube_publish_at"),
-                               instagram_publish_at=body.get("instagram_publish_at"))
-    except (ValueError, TypeError) as e:
-        raise HTTPException(400, str(e))
+    made = posting.enqueue(job, clip, [str(a) for a in body.get("accounts", [])][:20], now=bool(body.get("now")))
     if not made:
         raise HTTPException(400, "Nothing was queued. Pick at least one account this clip has not already gone to.")
-    return {"queued": len(made),
-            "youtube_remote": sum(p["platform"] == "youtube" and bool(p.get("publish_at")) for p in made),
-            "instagram_local": sum(p["platform"] == "instagram" and bool(p.get("instagram_publish_at")) for p in made)}
+    return {"queued": len(made)}
 
 
 @app.post("/api/posts/{pid}/{action}")

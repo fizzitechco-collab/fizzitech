@@ -51,12 +51,6 @@ jobs:
       - name: Source-matched 4K resolution — offline checks
         run: python tests/test_source_quality.py
 
-      - name: YouTube native and Instagram local scheduling
-        run: python tests/test_platform_scheduling.py
-
-      - name: YouTube and Instagram scheduling UI with timezone conversion
-        run: node tests/test_schedule_ui.js
-
       - name: Protected campaign posting and original-copy confirmation
         run: node tests/test_protected_campaign_post.js
 
