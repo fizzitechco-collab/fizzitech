@@ -390,8 +390,34 @@ def _yt_resume_position(location: str, token: str, total: int):
     return int(match.group(1)) + 1, None
 
 
+def youtube_publish_time(value, *, min_lead_seconds=1200):
+    """Validate a future timezone-aware publish time and return canonical UTC.
+
+    YouTube requires private status when scheduling; stale publishAt values can
+    immediately publish a video, so never accept naive or past timestamps.
+    """
+    from datetime import datetime, timedelta, timezone
+    raw = str(value or "").strip()
+    if not raw or len(raw) > 48:
+        raise ValueError("Select a YouTube scheduled date and time.")
+    try:
+        stamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError("Use a valid YouTube schedule time with a timezone.") from None
+    if stamp.tzinfo is None or stamp.utcoffset() is None:
+        raise ValueError("YouTube schedule time needs a timezone.")
+    stamp = stamp.astimezone(timezone.utc)
+    now = datetime.now(timezone.utc)
+    if stamp <= now + timedelta(seconds=min_lead_seconds):
+        raise ValueError("Choose a YouTube publish time at least 20 minutes in the future. "
+                         "The video must upload before that time.")
+    if stamp > now + timedelta(days=365):
+        raise ValueError("YouTube publish date must be within the next year.")
+    return stamp.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
 def youtube_upload(acc, path: Path, title: str, description: str, tags: list, privacy: str,
-                   *, resume_session=None, on_progress=None):
+                   *, resume_session=None, on_progress=None, publish_at=None):
     """Resumable 8 MiB chunks, no full-file f.read(); verify the chosen upload channel.
 
     If a request times out, query the session's committed byte offset before
@@ -413,10 +439,19 @@ def youtube_upload(acc, path: Path, title: str, description: str, tags: list, pr
         raise RuntimeError("OAuth is connected to a different YouTube channel. Reconnect the intended upload channel in Settings.")
     if privacy not in ("public", "unlisted", "private"):
         privacy = "private"
+    # A scheduled YouTube release is an uploaded PRIVATE video with publishAt.
+    # Unlike the local queue, YouTube will publish it after our server shuts down.
+    # For a resumed session we still validate time, but the original metadata
+    # was submitted to YouTube when that session was first created.
+    scheduled_at = youtube_publish_time(publish_at) if publish_at else None
+    if scheduled_at:
+        privacy = "private"
     meta = {"snippet": {"title": re.sub(r"[<>]", "", title)[:100] or "Clip",
                         "description": re.sub(r"[<>]", "", description)[:4900],
                         "tags": list(tags or [])[:15], "categoryId": "20"},
             "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}}
+    if scheduled_at:
+        meta["status"]["publishAt"] = scheduled_at
     location = resume_session
     if not location:
         response = _check(httpx.post("https://www.googleapis.com/upload/youtube/v3/videos",
