@@ -39,6 +39,9 @@ jobs:
       - name: Custom Campaigns — ownership, drafts, clipping and no autopost
         run: python tests/test_custom_campaigns.py
 
+      - name: Auto-post eligibility and actionable failure diagnostics
+        run: python tests/test_autopost_diagnostics.py
+
       - name: Upstream content sync — regression checks
         run: python tests/test_upstream_campaign_sync.py
 
