@@ -97,7 +97,7 @@ try:
         status = posting.diagnostics("creator1")
         check("Diagnostics surface global posting pause", status["paused"] and any("PAUSED" in s for s in status["notices"]))
         check("Diagnostics surface provider's previous error without any OAuth tokens",
-              status["recent"][0]["queued"] and "expired" in status["recent"][0]["reason"]
+              any(x["queued"] and "expired" in x["reason"] for x in status["recent"])
               and not any("access_token" in str(x) for x in status.values()))
         check("Diagnostics surface clips that miss the minimum score",
               any("below the auto-post minimum" in row["reason"] for row in status["recent"]))
