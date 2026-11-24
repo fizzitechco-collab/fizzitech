@@ -390,6 +390,30 @@ def _yt_resume_position(location: str, token: str, total: int):
     return int(match.group(1)) + 1, None
 
 
+def instagram_publish_time(value):
+    """UTC time for LOCAL Instagram scheduling (Meta has no native publishAt).
+
+    A running PeakCut worker must call media_publish at the chosen time.
+    """
+    from datetime import datetime, timedelta, timezone
+    raw = str(value or "").strip()
+    if not raw or len(raw) > 48:
+        raise ValueError("Select an Instagram scheduled date and time.")
+    try:
+        stamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError("Choose a valid Instagram date and time with a timezone.") from None
+    if stamp.tzinfo is None or stamp.utcoffset() is None:
+        raise ValueError("Instagram schedule needs a timezone.")
+    stamp = stamp.astimezone(timezone.utc)
+    now = datetime.now(timezone.utc)
+    if stamp <= now + timedelta(minutes=5):
+        raise ValueError("Schedule Instagram at least 5 minutes ahead. The server must stay running.")
+    if stamp > now + timedelta(days=365):
+        raise ValueError("Instagram scheduled date must be within the next year.")
+    return stamp.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
 def youtube_publish_time(value, *, min_lead_seconds=1200):
     """Validate a future timezone-aware publish time and return canonical UTC.
 
