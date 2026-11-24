@@ -3302,7 +3302,7 @@ document.addEventListener("click", async e => {
       await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body); toast("Re-making the clip…", "ok"); return tick();
     }
     if (a === "postnow" || a === "postqueue") {
-      const accs = $("#clipdlg [data-pacc]:checked").map(i => i.value);
+      const accs = $$("#clipdlg [data-pacc]:checked").map(i => i.value);
       if (!accs.length) return toast("Tick at least one account first.", "bad");
       const job = jobOf(D.jid), clip = job?.clips.find(c => c.id === D.cid);
       if (!clip || clip.status !== "done") throw new Error("This clip is not ready to post.");
