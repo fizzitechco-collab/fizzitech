@@ -1337,6 +1337,17 @@ def gta_auto_stop(body: dict = Body(default={})):
     try: return auto.stop((body or {}).get("lang", "both"))
     except ValueError as e: raise HTTPException(400, str(e))
 
+@app.get("/api/creators/{cid}/autopost-diagnostics")
+def creator_autopost_diagnostics(cid: str):
+    """User-visible explanation for skipped posts and queue failures."""
+    try:
+        return posting.diagnostics(cid)
+    except KeyError:
+        raise HTTPException(404, "No such creator")
+    except (ValueError, OSError) as exc:
+        raise HTTPException(503, "Could not read posting status: " + str(exc))
+
+
 @app.get("/api/creators")
 def list_creators():
     return _creator_rows()
