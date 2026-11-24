@@ -1,5 +1,5 @@
 # LegendClipper V2 — !clipv2 resume context
-Updated: 2026-11-22
+Updated: 2026-11-24
 
 ## Core project
 - Name: LegendClipper V2 (`!clipv2`) — customized fork of an older PeakCut release; do not confuse with `!clip`.
@@ -44,6 +44,15 @@ Updated: 2026-11-22
 - NEW 2026-11-22 GitHub Actions workflow runs **45056624172** and **45056623885**: successful Python compilation, Custom Campaigns offline tests, upstream metadata tests, key persistence tests, source-quality tests and JS syntax checks. These are genuine GitHub-hosted test results, NOT a Windows end-to-end recording/upload test.
 - User's main Windows PC has NOT yet pulled the latest Custom Campaigns commits after the earlier key-saving commit; ask them to pull/test and restart before expecting the new UI. Sister's Victus is still old.
 
+
+## Auto-post visibility and November 24 troubleshooting patch
+- Issue reported: creator auto-post not working, exact platform/queue error not supplied; do not claim provider upload is fixed or tokens are verified.
+- Code audited: automatic post runs only for a completed clip belonging to a creator with Auto-post ON, connected destination account, publishing rights confirmed, and clip score meeting post_min_score. Home jobs with No creator are never auto-posted. Content campaign clips intentionally require human review, never autopost.
+- Feature branch now adds creator-level `GET /api/creators/{cid}/autopost-diagnostics`, visible on Creator -> Setup -> "Why isn't auto-post working?". It explains permissions, no destination, paused queue, score threshold, disconnected accounts and recent queue/provider failures without exposing credentials.
+- `studio/posting.py` centralizes eligibility and logs skip reason to creator activity, ensures only connected selected destinations are queued, and honors chosen YouTube channel. Existing manual posting, normal creator auto-post, and campaign manual review behavior retained.
+- `tests/test_autopost_diagnostics.py` added; corrected old Custom Campaigns test fixtures. GitHub Actions run #45410611603 on feature commit f6075bd passed auto-post checks, Custom Campaigns checks, key tests, source quality and JavaScript syntax.
+- Actual Instagram/TikTok/YouTube live authorization, platform permissions and uploads still need diagnosis from Home -> Post queue error text. Never request API keys or login tokens in chat.
+- Important user clarification: user ultimately wants a Content Rewards **real available campaigns** listing, NOT the previously implemented self-created Custom Campaigns manager. The latter remains in the feature branch but does not satisfy that requirement. Do not describe it as a Content Rewards integration.
 
 ## Deferred work
 - Original upstream PeakCut has no standalone Custom Campaigns manager in its current `main`; the independent one was implemented above. Further upstream sync (other modules, complete editor/B-roll/analytics) is still pending; do not assume full PeakCut/SupoClip feature parity.
