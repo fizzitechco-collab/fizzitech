@@ -1811,6 +1811,9 @@ function drawAdd(variant) {
         <label class="f">Spoken language captions<select id="o_caption_language">${opts({auto:"Auto — Roman Hindi/Hinglish if spoken",roman:"Original speech in Roman letters",english:"Translate non-English to English"},localStorage.getItem("legend_caption_language") || "auto")}</select></label>
         <label class="sw"><input id="o_facecam_review" type="checkbox" ${(localStorage.getItem("legend_facecam_review") === "1") || (localStorage.getItem("legend_facecam_review") === null && optionSelectedValue("o_clip_mode", "gaming") === "gta6") ? "checked" : ""}><span>Choose facecam before rendering<small>Preview an image, click two corners around the full webcam, or Skip facecam</small></span></label>
       </div></div>
+      <div class="ob wide"><div class="ot">End-of-clip shoutout</div>
+        <label class="sw"><input id="o_watch_more_enabled" type="checkbox" ${(localStorage.getItem("legend_watch_more_enabled") === "1" || (localStorage.getItem("legend_watch_more_enabled") === null && !!c?.watch_more_enabled)) ? "checked" : ""}><span>Show "Watch more on #Creator #Platform" at the end<small>Last 3 seconds · slightly below center · automatically uses selected creator and source platform (YouTube / Twitch / Kick). Turn off to keep the clip clean.</small></span></label>
+        <p class="help">Requires "File under creator" selection (or clips made inside that creator's workspace). Local file uploads have no verified source platform and show only the creator hashtag. Protected campaigns are unaffected.</p></div>
       <div class="ob"><div class="ot">Part of the video</div><div class="range">
         <label>From<input id="o_from" type="number" min="0" placeholder="start" aria-label="From minute">min</label>${ic("arrowr")}
         <label>To<input id="o_to" type="number" min="0" placeholder="end" aria-label="Up to minute">min</label></div></div>
@@ -1935,7 +1938,7 @@ function jobOptions() {
   if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error('Enter a clip count between 1 and 100, or choose MAX.');
   const shortest = n("#o_min") ?? 15, longest = n("#o_maxlen") ?? 60;
   if (!Number.isFinite(shortest) || !Number.isFinite(longest) || shortest < 5 || longest > 180 || shortest >= longest) throw new Error('Shortest must be at least 5s and less than Longest (up to 180s).');
-  const o = {max_clips:count, min_len:shortest, max_len:longest, style:$("#o_style").value, layout:$("#o_layout").value, quality:n("#o_quality"), analysis_mode:$("#o_analysis_mode")?.value || "fast", caption_active:$("#o_caption_active")?.value || "6BD7FF", hook_box:$("#o_hook_box")?.value || "FFFFFF", hook_text:$("#o_hook_text")?.value || "14100E", clip_mode:$("#o_clip_mode")?.value || "gaming", gta6_only_live:$("#o_gta6_only_live")?.value === "yes", facecam_review:$("#o_facecam_review")?.checked || false, caption_language:$("#o_caption_language")?.value || "auto", facecam_position:$("#o_facecam_position")?.value || "auto", facecam_size:$("#o_facecam_size")?.value || "medium", facecam_rect:$("#o_facecam_rect")?.value || "", custom_campaign_id:$("#o_custom_campaign")?.value || "", scan_entire:localStorage.getItem("legend_clip_limit_mode") === "max"};
+  const o = {max_clips:count, min_len:shortest, max_len:longest, style:$("#o_style").value, layout:$("#o_layout").value, quality:n("#o_quality"), analysis_mode:$("#o_analysis_mode")?.value || "fast", caption_active:$("#o_caption_active")?.value || "6BD7FF", hook_box:$("#o_hook_box")?.value || "FFFFFF", hook_text:$("#o_hook_text")?.value || "14100E", clip_mode:$("#o_clip_mode")?.value || "gaming", gta6_only_live:$("#o_gta6_only_live")?.value === "yes", facecam_review:$("#o_facecam_review")?.checked || false, caption_language:$("#o_caption_language")?.value || "auto", facecam_position:$("#o_facecam_position")?.value || "auto", facecam_size:$("#o_facecam_size")?.value || "medium", facecam_rect:$("#o_facecam_rect")?.value || "", custom_campaign_id:$("#o_custom_campaign")?.value || "", watch_more_enabled:$("#o_watch_more_enabled")?.checked || false, scan_entire:localStorage.getItem("legend_clip_limit_mode") === "max"};
   if (o.custom_campaign_id && o.clip_mode === "gta6") throw new Error("Custom Campaigns work with Gaming or IRL, not the GTA 6 preset. Choose Gaming or IRL.");
   try {
     localStorage.setItem("peakcut_facecam_rect", o.facecam_rect);
@@ -1948,6 +1951,7 @@ function jobOptions() {
     localStorage.setItem("legend_facecam_review", o.facecam_review ? "1" : "0");
     localStorage.setItem("legend_caption_language", o.caption_language);
     localStorage.setItem("legend_analysis_mode", o.analysis_mode);
+    localStorage.setItem("legend_watch_more_enabled", o.watch_more_enabled ? "1" : "0");
   } catch {}
   if (n("#o_from") !== null) o.range_start = n("#o_from") * 60;
   if (n("#o_to") !== null) o.range_end = n("#o_to") * 60;
@@ -2552,6 +2556,7 @@ function drawCreatorForm() {
         <label class="f">Layout<select data-k="layout">${opts(S.status.layouts, c.layout)}</select></label>
         <label class="f span">Big text on every clip (optional)<input data-k="overlay_hook_text" maxlength="60" value="${esc(c.overlay_hook_text || "")}" placeholder="Leave blank to let AI write a unique hook"><small class="sub">An original creator-wide headline. This does not change the existing Hook text COLOR. Protected campaign rules still take priority.</small></label>
         <label class="f span">Description for every clip (optional)<textarea data-k="description_text" rows="3" maxlength="2000" placeholder="Leave blank for AI-generated descriptions">${esc(c.description_text || "")}</textarea><small class="sub">Preserves your wording, mentions, links and hashtags for ordinary gaming/IRL clips. Leave blank for automatic metadata.</small></label>
+        <label class="sw span"><input type="checkbox" data-k="watch_more_enabled" ${c.watch_more_enabled ? "checked" : ""}><span>End shoutout: Watch more on #Creator #Platform<small>Default for this creator's new clips and automatic livestream clips. Uses the saved creator name and actual source domain; only ordinary Gaming / IRL clips.</small></span></label>
         <label class="f">Default webcam corner<select data-k="facecam_position">${opts({auto:"Auto detect",top_left:"Top left",top_right:"Top right",bottom_left:"Bottom left",bottom_right:"Bottom right"},c.facecam_position || "auto")}</select></label>
         <label class="f">Default webcam size<select data-k="facecam_size">${opts({small:"Small",medium:"Medium",large:"Large"},c.facecam_size || "medium")}</select></label>
         <label class="f">Exact webcam region (optional x,y,w,h)<input data-k="facecam_rect" placeholder="0.02,0.03,0.36,0.36" value="${esc(c.facecam_rect || "")}"></label>
