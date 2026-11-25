@@ -1,4 +1,4 @@
-"""Selected creator credit for ordinary clips, with no hashtag prefixes.
+"""Creator hashtag in clip titles; plain creator/platform name in end overlay.
 
 Creator identity is taken from a selected workspace, never guessed from AI text.
 Protected brand and special campaigns retain their approved text.
@@ -14,17 +14,21 @@ def creator_label(name: str) -> str:
 
 
 def title_with_creator(title: str, creator_name: str, *, protected: bool = False) -> str:
-    """Credit selected creator once in a <=100-character title, without '#'."""
+    """Append #Creator once to title (<=100 chars); CTA uses plain creator."""
     title = str(title or "").strip()[:100]
     label = creator_label(creator_name)
-    if protected or not label:
+    tag = "#" + label if label else ""
+    if protected or not tag:
         return title
-    # Convert a legacy auto-appended #Creator label to plain Creator.
-    existing_tag = re.compile(r"(?<![\w])#" + re.escape(label) + r"(?![\w])", re.IGNORECASE)
-    title = existing_tag.sub(label, title)
-    if re.search(r"(?<![\w])" + re.escape(label) + r"(?![\w])", title, re.IGNORECASE):
+    # An existing #Creator (case-insensitive) should never be duplicated.
+    if re.search(r"(?<![\\w])" + re.escape(tag) + r"(?![\\w])", title, re.IGNORECASE):
         return title
-    return (title[:100 - len(label) - 1].rstrip() + " " + label).strip()
+    # Convert an unprefixed legacy creator suffix to the requested hashtag.
+    existing = re.compile(r"(?<![\\w#])" + re.escape(label) + r"(?![\\w])", re.IGNORECASE)
+    if existing.search(title):
+        replaced = existing.sub(tag, title, count=1)
+        return replaced[:100] if len(replaced) <= 100 else (replaced[:100 - len(tag) - 1].rstrip() + " " + tag)
+    return (title[:100 - len(tag) - 1].rstrip() + " " + tag).strip()
 
 
 def source_platform(source: dict) -> str:
