@@ -51,6 +51,9 @@ jobs:
       - name: Source-matched 4K resolution — offline checks
         run: python tests/test_source_quality.py
 
+      - name: Normal clipping end-CTA toggle controls
+        run: node tests/test_creator_branding_ui.js
+
       - name: Normal clip creator hashtag and optional source end CTA
         run: python tests/test_creator_branding.py
 
