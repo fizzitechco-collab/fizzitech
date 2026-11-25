@@ -66,6 +66,15 @@ Updated: 2026-11-24
 - `web/index.html` now normalizes harmless whitespace/CRLF/hashtag-prefix differences before comparing editor draft with stored post copy. If protected title, description or hashtags genuinely differ, Post now and Add to queue offer explicit "Post original text / Queue original text" confirmation. If approved, editor reverts to stored title/description/hashtags and queues original saved metadata, **without rerendering and without mutating protected campaign text**. Cancel retains editor draft, queues nothing. To publish changed protected content, user still must use the existing review/remake workflow.
 - `tests/test_protected_campaign_post.js` plus CI regression verify the behavior. Normal gaming/IRL free text edit-and-post workflow remains unchanged. Genuine platform permissions and successful live uploads are separate checks.
 
+## November 25: Normal clips creator-tagged titles and optional end shoutout
+- User asked: for normal clips, an optional bottom-middle message at the end: `Watch more on #NameOfCreator #YouTube` / `#Twitch` / `#Kick`, ON/OFF option; and always include the selected creator hashtag in clip post titles (`#IShowSpeed`) automatically.
+- Implemented `studio/creator_branding.py` with source-domain whitelisting, Unicode-aware creator hashtag/title deduplication/length cap, and protected campaign skip. New normal Gaming/IRL clips created under selected creator get title suffix automatically; title changes via post text save and re-render keep it.
+- `studio/gta_cta.py` new `add_watch_more()` renders two ASS events during last three seconds of video, positions `y=1130/1210` on 1080x1920 canvas (just under center), white outlined, adapted small font for long creator names. `studio/render.py` uses it only if `watch_more_enabled`, in existing FFmpeg/ASS pass; GTA older CTA unchanged.
+- New checkbox in normal `Make clips → Options → End-of-clip shoutout` (persisted locally). Per-creator default checkbox `Creator → Setup → Clips`; also affects live auto clips via `studio/live.py`. Jobs `watch_more_enabled` saved. Source derived from actual YouTube/Twitch/Kick URL; local file won't invent platform, and no creator selection means no CTA. Opted out by default.
+- Does NOT rewrite protected GTA VI/Expedia/custom campaign copy, and prior Instagram/YouTube scheduling rollback remains in place. No changes to posting queue, secrets, or remote platform permissions.
+- Added CI tests `tests/test_creator_branding.py` and `tests/test_creator_branding_ui.js`; feature branch `legend/facecam-preview-audio-repair`. Existing ready clips not retroactively modified: render new or re-make as appropriate.
+- No claim of actual video quality review until a user-supplied clip is rendered.
+
 ## Deferred work
 - Original upstream PeakCut has no standalone Custom Campaigns manager in its current `main`; the independent one was implemented above. Further upstream sync (other modules, complete editor/B-roll/analytics) is still pending; do not assume full PeakCut/SupoClip feature parity.
 - Broader Settings UI polish may be addressed in a later fix. AI key saving logic itself was fixed and 18 offline tests passed.
