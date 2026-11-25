@@ -20,14 +20,14 @@ def check(label, ok):
     print("PASS " + label)
 
 check("Selected IShowSpeed creator is included in title exactly once",
-      creator_branding.title_with_creator("Huge clutch!", "IShowSpeed") == "Huge clutch! #IShowSpeed"
-      and creator_branding.title_with_creator("Huge clutch! #ishowspeed", "IShowSpeed") == "Huge clutch! #ishowspeed")
-check("Creator names with spaces turn into stable hashtags",
-      creator_branding.creator_hashtag("Kai Cenat") == "#KaiCenat")
-check("Title cap stays at 100 chars even after hashtag",
+      creator_branding.title_with_creator("Huge clutch!", "IShowSpeed") == "Huge clutch! IShowSpeed"
+      and creator_branding.title_with_creator("Huge clutch! #ishowspeed", "IShowSpeed") == "Huge clutch! ishowspeed")
+check("Creator names with spaces turn into plain labels",
+      creator_branding.creator_label("Kai Cenat") == "KaiCenat")
+check("Title cap stays at 100 chars after creator credit",
       len(creator_branding.title_with_creator("a" * 100, "IShowSpeed")) <= 100
-      and creator_branding.title_with_creator("a" * 100, "IShowSpeed").endswith("#IShowSpeed"))
-check("No creator means no guessed hashtag",
+      and creator_branding.title_with_creator("a" * 100, "IShowSpeed").endswith("IShowSpeed"))
+check("No creator means no guessed name",
       creator_branding.title_with_creator("Great gaming!", "") == "Great gaming!")
 check("Known video source domains determine on-screen platform",
       creator_branding.source_platform({"url":"https://www.youtube.com/watch?v=Kyv61l2vF6M"}) == "YouTube"
@@ -42,21 +42,23 @@ job = {"options":{"clip_mode":"gaming","watch_more_enabled":True},
 clip = {"title":"An incredible moment","hook":"WOW"}
 creator_branding.decorate_clip(clip, job, "IShowSpeed")
 check("Normal clip title and end CTA come from selected creator and actual source",
-      clip["title"].endswith("#IShowSpeed") and clip["watch_more_enabled"]
-      and clip["watch_more_name"] == "#IShowSpeed" and clip["watch_more_platform"] == "Twitch")
+      clip["title"].endswith("IShowSpeed") and clip["watch_more_enabled"]
+      and clip["watch_more_name"] == "IShowSpeed" and clip["watch_more_platform"] == "Twitch")
 ass = "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
 decorated = add_watch_more(ass, clip, 23)
 check("CTA appears only during the last three seconds and below center",
-      "Watch more on" in decorated and "#IShowSpeed  #Twitch" in decorated
+      "Watch more on" in decorated and "IShowSpeed  Twitch" in decorated
       and "0:00:20." in decorated and "\\pos(540,1130)" in decorated)
+check("Titles and end CTA contain no hash prefix", 
+      "#" not in clip["title"] and "#" not in decorated)
 check("CTA OFF leaves existing ASS unchanged",
       add_watch_more(ass, {**clip, "watch_more_enabled":False}, 23) == ass)
 check("No creator or short clip gives no misleading CTA",
       add_watch_more(ass, {**clip, "watch_more_name":""}, 23) == ass
       and add_watch_more(ass, clip, 1) == ass)
 check("Unknown file-source platform is omitted without inventing a source",
-      "#IShowSpeed" in add_watch_more(ass, {**clip, "watch_more_platform":""}, 23)
-      and "#Twitch" not in add_watch_more(ass, {**clip, "watch_more_platform":""}, 23))
+      "IShowSpeed" in add_watch_more(ass, {**clip, "watch_more_platform":""}, 23)
+      and "Twitch" not in add_watch_more(ass, {**clip, "watch_more_platform":""}, 23))
 check("Existing GTA CTA behavior remains available",
       "Watch more on" in add_cta(ass, {"cta_enabled":True,"cta_creator_name":"IShowSpeed"}, 18))
 
