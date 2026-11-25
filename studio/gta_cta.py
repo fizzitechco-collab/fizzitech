@@ -44,7 +44,10 @@ def add_watch_more(ass: str, clip: dict, seconds: float) -> str:
     # 1080x1920 canvas: lower-middle (61–65% height), safely above UI bottom.
     # ASS escapes are literal, and user-provided text has no formatting braces.
     first = r"{\an5\pos(540,1130)\fs47\b1\1c&H00FFFFFF&\3c&H00101010&\bord5\shad2\fad(200,250)}"
-    second = r"{\an5\pos(540,1210)\fs54\b1\1c&H00FFFFFF&\3c&H00101010&\bord6\shad2\fad(200,250)}"
+    # Reduce font size for very long workspace names so text stays on screen.
+    font_size = max(25, min(54, int(54 * 24 / max(24, len(second_line)))))
+    second = (r"{\an5\pos(540,1210)\fs" + str(font_size) +
+              r"\b1\1c&H00FFFFFF&\3c&H00101010&\bord6\shad2\fad(200,250)}")
     return (ass.rstrip() +
             f"\nDialogue: 9,{_time(start)},{_time(end)},Hook,,0,0,0,,{first}Watch more on" +
             f"\nDialogue: 9,{_time(start)},{_time(end)},Hook,,0,0,0,,{second}{second_line}\n")
