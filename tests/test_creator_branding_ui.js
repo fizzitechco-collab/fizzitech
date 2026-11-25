@@ -13,7 +13,7 @@ assert.ok(js.includes('watch_more_enabled:$("#o_watch_more_enabled")?.checked ||
           "Normal clip request must include switch state");
 assert.ok(js.includes('localStorage.setItem("legend_watch_more_enabled"'),
           "Normal clip choice must persist between page visits");
-assert.ok(html.includes('Watch more on #Creator #Platform'),
+assert.ok(html.includes('Watch more on Creator Platform'),
           "Show explicit meaning of end CTA to user");
 assert.ok(js.includes('if (e.target?.id !== "o_creator") return;') &&
           js.includes('input.checked = !!selected?.watch_more_enabled;'),
