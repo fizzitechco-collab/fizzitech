@@ -20,7 +20,7 @@ DEFAULTS = {"name": "", "channel": "", "style": "bounce", "layout": "blur", "min
             "trigger_words": "clip that, clip it", "overlay_hook_text": "", "description_text": "",
             "autopost": False, "accounts": [], "post_min_score": 75, "post_gap_min": 45, "daily_cap": 6,
             "privacy": "public", "post_footer": "", "rate_per_1k": 0.0, "channels": {},
-            "youtube_account": "", "post_rights_confirmed": False, "facecam_position": "auto", "facecam_size": "medium", "clip_quality": 1080, "facecam_rect": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "gta_auto_sequential": False, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
+            "youtube_account": "", "post_rights_confirmed": False, "facecam_position": "auto", "facecam_size": "medium", "clip_quality": 1080, "facecam_rect": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "gta_auto_sequential": False, "cta_enabled": False, "cta_creator_name": "", "watch_more_enabled": False}  # LEGEND_GTA6_AUTO_V2
 PLATFORMS = ("youtube", "twitch", "kick")
 
 
@@ -75,7 +75,7 @@ def _clean(data: dict) -> dict:
         if k in NUMERIC:
             lo, hi = NUMERIC[k]
             v = max(lo, min(hi, int(float(v))))
-        elif k in ("auto_watch", "autopost", "ai_only_on_spike", "post_rights_confirmed", "gta6_only_live", "facecam_review", "gta_auto_sequential", "cta_enabled"):
+        elif k in ("auto_watch", "autopost", "ai_only_on_spike", "post_rights_confirmed", "gta6_only_live", "facecam_review", "gta_auto_sequential", "cta_enabled", "watch_more_enabled"):
             v = bool(v)
         elif k == "channels":
             v = {p: str(u).strip()[:300] for p, u in (v.items() if isinstance(v, dict) else []) if p in PLATFORMS and str(u).strip()}
