@@ -12,7 +12,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-from . import brain, campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage
+from . import brain, campaigns, custom_campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage, games, hashtags, creator_branding
 
 class _FairQueue:
     """Whose video is next. Each person has their own line and the lines take turns, so someone who adds ten
@@ -130,11 +130,12 @@ on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first f
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "auto", "quality": 360,
             "caption_base": "FFFFFF", "caption_active": "6BD7FF", "hook_box": "FFFFFF", "hook_text": "14100E",
-            "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
+            "overlay_hook_text": "", "description_text": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "custom_campaign_id": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": "", "watch_more_enabled": False}  # LEGEND_GTA6_AUTO_V2
 
 
 # LEGEND NEON V1: safe per-job analysis defaults
 DEFAULTS['analysis_mode'] = 'fast'
+DEFAULTS['scan_entire'] = False  # MAX mode: inspect the complete selected recording
 
 LIMITS = {"max_clips": (1, 100), "min_len": (5, 120), "max_len": (10, 180)}
 
@@ -147,10 +148,8 @@ def clean_options(options) -> dict:
             continue
         if k == "quality":
             v = int(v)
-            # LEGEND_SOURCE1080_JOBS_V1: old 4K saved jobs downgrade to 1080p.
-            if v == 2160: v = 1080
-            if v not in (360, 720, 1080):
-                raise ValueError("Select 360p, 720p or 1080p maximum.")
+            if v not in (0, 360, 720, 1080, 2160):
+                raise ValueError("Select Auto (up to 4K), 360p, 720p, 1080p or 4K.")
         elif k in LIMITS:
             lo, hi = LIMITS[k]
             v = max(lo, min(hi, int(float(v))))
@@ -158,6 +157,10 @@ def clean_options(options) -> dict:
             v = v if v in render.STYLES else DEFAULTS["style"]
         elif k == "layout":
             v = v if v in render.LAYOUTS else DEFAULTS["layout"]
+        elif k == "overlay_hook_text":
+            v = creators.clean_overlay_hook(v)
+        elif k == "description_text":
+            v = creators.clean_description_text(v)
         elif k == "facecam_position":
             v = v if v in ("auto", "top_left", "top_right", "bottom_left", "bottom_right") else "auto"
         elif k == "facecam_size":
@@ -167,7 +170,7 @@ def clean_options(options) -> dict:
             if str(v).strip():
                 parse_webcam_rect(v)
             v = str(v).strip()[:60]
-        elif k in ("gta6_only_live", "facecam_review", "cta_enabled"):
+        elif k in ("gta6_only_live", "facecam_review", "cta_enabled", "watch_more_enabled", "scan_entire"):
             v = v is True or str(v).lower() in ("1", "true", "yes", "on")
         elif k == "cta_creator_name":
             v = str(v).strip()[:70]
@@ -181,6 +184,10 @@ def clean_options(options) -> dict:
             v = str(v)
             if v not in campaigns.MODES:
                 raise ValueError("Choose Gaming, IRL, or GTA 6 clipping mode.")
+        elif k == "custom_campaign_id":
+            v = str(v).strip()
+            if not re.fullmatch(r"[0-9a-f]{16}", v):
+                raise ValueError("Invalid custom campaign ID.")
         elif k == "campaign_destination":
             v = str(v).strip()[:55]
             if v and not re.fullmatch(r"[\w\- .,']+", v):
@@ -311,7 +318,18 @@ def retry(jid):
     source = dict(old["source"])
     if source.get("type") == "file" and not Path(source.get("path") or "").is_file():
         raise ValueError("Original uploaded video is missing. Upload the file again.")
-    new = create(source, dict(old["options"]), enqueue=False, creator=old.get("creator"))
+    # An older campaign job keeps its original snapshot even when the
+    # campaign is later edited, paused or deleted. Retrying the source must
+    # not silently replace its original brand brief or reject a deleted ID.
+    old_snapshot = old.get("custom_campaign")
+    options = dict(old["options"])
+    if old_snapshot:
+        options.pop("custom_campaign_id", None)
+    new = create(source, options, enqueue=False, creator=old.get("creator"))
+    if old_snapshot:
+        new["custom_campaign"] = dict(old_snapshot)
+        new["options"]["custom_campaign_id"] = old_snapshot["id"]
+        save(new)
     if source.get("type") == "file":
         original = Path(source["path"])
         new_path = Path(new["dir"]) / ("source" + original.suffix)
@@ -433,7 +451,7 @@ def create(source: dict, options: dict, enqueue=True, creator=None, kind="video"
     c = creators.get(creator) if creator else None
     if c:
         d = creators.root(c["id"]) / ("live" if kind == "live" else "videos") / jid
-        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "facecam_position", "facecam_size", "facecam_rect", "cta_enabled", "cta_creator_name") if k in c}}
+        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "facecam_position", "facecam_size", "facecam_rect", "cta_enabled", "cta_creator_name", "watch_more_enabled", "overlay_hook_text", "description_text") if k in c}}
         if kind == "live":
             base["quality"] = int(c.get("clip_quality", 1080))
             base["clip_mode"] = str(c.get("clip_mode", "gaming"))
@@ -443,12 +461,18 @@ def create(source: dict, options: dict, enqueue=True, creator=None, kind="video"
         d, base, creator = config.user_dir(ctx.uid()) / "jobs" / jid, dict(DEFAULTS), None
     opts = campaigns.approved_range({**base, **clean_options(options)})
     campaigns.validate_source(source, opts)
+    custom_campaign = None
+    if opts.get("custom_campaign_id"):
+        if opts.get("clip_mode") not in ("gaming", "irl"):
+            raise ValueError("Custom campaigns require Gaming or IRL clip type, not the GTA 6 preset.")
+        custom_campaign = custom_campaigns.snapshot(opts["custom_campaign_id"])
     d.mkdir(parents=True)
     if opts["min_len"] >= opts["max_len"]:
         opts["min_len"] = max(5, opts["max_len"] - 5)
     job = {"id": jid, "user": ctx.uid(), "kind": kind, "creator": creator, "dir": str(d), "created": time.time(), "source": source,
            "options": opts, "status": "queued", "stage": "Waiting", "progress": 0.0,
-           "title": source.get("name", ""), "uploader": "", "duration": 0, "clips": [], "error": None, "ai": {}}
+           "title": source.get("name", ""), "uploader": "", "duration": 0, "clips": [], "error": None, "ai": {},
+           "custom_campaign": custom_campaign}
     with _lock:
         _jobs[jid] = job
         _by_user.setdefault(job["user"], {})[jid] = job
@@ -491,6 +515,101 @@ def delete(jid):
         ctx.bump(job["user"])
         shutil.rmtree(job["dir"], ignore_errors=True)
     return bool(job)
+
+
+def clean_hashtags(value) -> list:
+    """Accept manually edited tags without allowing HTML, separators or excess length."""
+    if isinstance(value, str):
+        value = value.split()
+    if not isinstance(value, list):
+        raise ValueError("Hashtags must be words separated by spaces.")
+    tags = []
+    for entry in value[:50]:
+        if not isinstance(entry, (str, int)):
+            continue
+        tag = re.sub(r"[^A-Za-z0-9_]", "", str(entry).lstrip("#"))[:30]
+        if tag and tag.lower() not in {x.lower() for x in tags}:
+            tags.append(tag)
+        if len(tags) >= 8:
+            break
+    return tags
+
+
+def save_post_text(job, clip, changes: dict):
+    """Save clip publishing copy without touching/re-encoding the video.
+    
+    Protected GTA VI/Expedia campaigns still use the existing review/re-make path.
+    """
+    if clip.get("status") != "done":
+        raise ValueError("Wait until the clip finishes before changing its post text.")
+    if clip.get("campaign_review_required") or job.get("options", {}).get("clip_mode") not in ("gaming", "irl"):
+        raise ValueError("Protected campaign copy must be updated through Save and re-make clip.")
+    if not isinstance(changes, dict):
+        raise ValueError("Provide the post text fields.")
+    new = {}
+    if "title" in changes:
+        title = str(changes["title"] or "")[:100].strip()
+        workspace = creators.get(job.get("creator")) if job.get("creator") else None
+        if workspace and not job.get("custom_campaign"):
+            title = creator_branding.title_with_creator(title, workspace.get("name", ""))
+        new["title"] = title
+    if "description" in changes:
+        new["description"] = creators.clean_description_text(changes["description"])
+    if "hashtags" in changes:
+        new["hashtags"] = clean_hashtags(changes["hashtags"])
+    # The automatic description may already have a generated hashtag line.
+    # When only the hashtag selection changed, update that line too.
+    if clip.get("hashtags_in_description") and not clip.get("fixed_description") and new:
+        changed_description = "description" in new and new["description"] != clip.get("description", "")
+        if changed_description:
+            # A human's edited copy is authoritative: do not rewrite it.
+            new["fixed_description"] = True
+            new["hashtags_in_description"] = False
+        elif "hashtags" in new:
+            text = str(clip.get("description") or "")
+            old_line = " ".join("#" + str(tag).lstrip("#") for tag in clip.get("hashtags", []))
+            if old_line and text.endswith(old_line):
+                text = text[:-len(old_line)].rstrip()
+            fresh_line = " ".join("#" + tag for tag in new["hashtags"])
+            new["description"] = (text + ("\n\n" if text and fresh_line else "") + fresh_line)[:2000]
+    if not new:
+        raise ValueError("Choose at least one post text field.")
+    with _lock:
+        clip.update(new)
+        save(job)
+    side = Path(job["dir"]) / "clips" / f"{clip['id']}.json"
+    try:
+        if side.is_file():
+            previous = json.loads(side.read_text(encoding="utf-8"))
+            if not isinstance(previous, dict):
+                previous = {}
+            side.write_text(json.dumps({**previous, **new}, indent=1), encoding="utf-8")
+    except (OSError, ValueError):
+        pass
+    return clip
+
+
+def spoken_in(job, clip) -> str:
+    """Only the words from this clip, for optional AI post-text regeneration."""
+    path = Path(job["dir"]) / "words.json"
+    try:
+        if path.stat().st_size > 75_000_000:
+            return ""  # avoid reading an enormous transcript just to edit a title
+        words = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    if not isinstance(words, list):
+        return ""
+    start, end = float(clip.get("start", 0)), float(clip.get("end", 0))
+    return " ".join(str(w.get("w", "")) for w in words if isinstance(w, dict)
+                    and start - 0.5 <= _post_word_second(w.get("s")) <= end + 0.5)[:9000]
+
+
+def _post_word_second(value) -> float:
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return -1.0
 
 
 def request_render(jid, cid, changes: dict):
@@ -554,6 +673,10 @@ def request_render(jid, cid, changes: dict):
         new["facecam_reviewed"] = True
     elif clip.get("status") == "needs_facecam":
         raise ValueError("First choose a webcam rectangle, or press Skip facecam.")
+    if "title" in changes and job["options"].get("clip_mode", "gaming") in ("gaming", "irl") and not job.get("custom_campaign") and not clip.get("campaign_review_required"):
+        workspace = creators.get(job.get("creator")) if job.get("creator") else None
+        if workspace:
+            new["title"] = creator_branding.title_with_creator(new.get("title", ""), workspace.get("name", ""))
     clip.update(new, status="queued", cancel_requested=False, timed_out=False, error=None)
     save(job)
     _q.put(("clip", jid, cid))
@@ -593,6 +716,7 @@ def render_one(job, clip, words):
                      facecam_position=clip.get("facecam_position", job["options"].get("facecam_position", "auto")),
                      facecam_size=clip.get("facecam_size", job["options"].get("facecam_size", "medium")),
                      facecam_rect=clip.get("facecam_rect", job["options"].get("facecam_rect", "")))
+        # Cached per-clip branding is preserved on re-make; older clips remain opt-out.
         # Ask for a manual webcam panel before expensive encoding, when requested.
         # The preview lives beside this clip in its protected job folder.
         if clip.get("facecam_review") and not clip.get("facecam_reviewed"):
@@ -804,6 +928,13 @@ def _covers(words: list, start: float, end: float) -> bool:
     return len(inside) >= 25 * minutes and inside[-1]["s"] >= start + 0.85 * (end - start)
 
 
+def _scan_quota_met(job) -> bool:
+    """Fixed clip counts stop once enough moments are chosen; MAX scans all."""
+    options = job["options"]
+    return (not options.get("scan_entire")
+            and len(job["clips"]) >= int(options["max_clips"]))
+
+
 def _run_job(job):
     _check_cancel(job)
     import math
@@ -828,6 +959,7 @@ def _run_job(job):
         _set(job, stage="Getting the audio")
     fetch = ThreadPoolExecutor(1)
     video = None
+    fast_audio = False
     if src["type"] == "url":
         meta = media.info(src["url"])
         if meta["kind"] != "video":
@@ -843,10 +975,28 @@ def _run_job(job):
         usage.set_context(job["creator"], meta["title"])
         span = (o["range_end"] or meta["duration"]) - (o["range_start"] or 0)
         pieces = (config.env("PEAKCUT_SEGMENTS_ONLY", "1") == "1" or span > LONG_VIDEO or meta["duration"] <= 0)
+        # Small requested counts scan short audio sections and stop once enough
+        # good highlights are selected. MAX keeps the full-range analysis.
+        fast_audio = (int(o["max_clips"]) <= 10 and not o.get("scan_entire")
+                      and span > 180 and meta["duration"] > 180
+                      and config.env("PEAKCUT_SMART_AUDIO", "1") != "0")
+        # A job started on an older release used 10-minute blocks.
+        # Do not reinterpret its saved done_blocks as 3-minute blocks.
+        if fast_audio and resuming and job.get("scan_block_seconds") != 180:
+            fast_audio = False
+        if fast_audio:
+            pieces = True
+            job["scan_block_seconds"] = 180
         if not pieces:  # shorter video: fetch all of it in the background while the audio is worked on
             video = fetch.submit(media.download, src["url"], d, int(o["quality"]))
-        audio_file = media.download_audio(src["url"], d, lambda p: _set(job, progress=0.03 + 0.1 * p),
-                                          cancelled=lambda: bool(job.get("cancel_requested")))
+        if fast_audio:
+            from .progressive_audio import ProgressiveAudio
+            audio = ProgressiveAudio(src["url"], d, meta["duration"],
+                                     cancelled=lambda: bool(job.get("cancel_requested")))
+            _set(job, stage="Scanning audio in small sections")
+        else:
+            audio_file = media.download_audio(src["url"], d, lambda p: _set(job, progress=0.03 + 0.1 * p),
+                                              cancelled=lambda: bool(job.get("cancel_requested")))
     else:
         pieces, audio_file = False, Path(src["path"])
         info = media.probe(audio_file)
@@ -855,19 +1005,20 @@ def _run_job(job):
         _set(job, source_path=str(audio_file), width=info["width"], height=info["height"], duration=info["duration"])
         if not job.get("thumb") and media.save_thumb(d, video=audio_file):
             _set(job, thumb=True)
-    wav = d / "audio.wav"
-    media.extract_audio(audio_file, wav,
-                        cancelled=lambda: bool(job.get("cancel_requested")))
-    audio = media.load_audio(wav)
-    wav.unlink(missing_ok=True)
-    if src["type"] == "url":
-        audio_file.unlink(missing_ok=True)
+    if not fast_audio:
+        wav = d / "audio.wav"
+        media.extract_audio(audio_file, wav,
+                            cancelled=lambda: bool(job.get("cancel_requested")))
+        audio = media.load_audio(wav)
+        wav.unlink(missing_ok=True)
+        if src["type"] == "url":
+            audio_file.unlink(missing_ok=True)
     if not job["duration"]:
         job["duration"] = len(audio) / 16000
     lo = int((o["range_start"] or 0) * 16000)
     hi = min(len(audio), int(o["range_end"] * 16000)) if o["range_end"] else len(audio)
     span = (hi - lo) / 16000
-    db = media.loudness_per_second(audio[lo:hi])
+    db = None if fast_audio else media.loudness_per_second(audio[lo:hi])
 
     vlock, vstate = threading.Lock(), {}
 
@@ -890,6 +1041,7 @@ def _run_job(job):
                 vstate["path"] = path
             return vstate["path"]
 
+    game_name, _ = games.detect(job.get("title", ""), job.get("uploader", ""))
     exact = {}      # clip id -> (from, to, words): our own model's words for just that clip
 
     began = {}      # clip id -> when work on it started
@@ -943,7 +1095,7 @@ def _run_job(job):
     render_workers = max(1, min(4, int(config.env("PEAKCUT_RENDER_WORKERS", "1"))))
     renders = ThreadPoolExecutor(render_workers)
     futures = []
-    step = BLOCK * 16000 if span > PROGRESSIVE_FROM else hi - lo
+    step = (180 * 16000 if fast_audio else BLOCK * 16000 if span > PROGRESSIVE_FROM else hi - lo)
     blocks = [(x, min(hi, x + step)) for x in range(lo, hi, step)] or [(lo, hi)]
     words, tokens, model = [], 0, None
     done_blocks = 0
@@ -1001,7 +1153,8 @@ def _run_job(job):
             _set(job, stage="Writing the transcript" + where)
             now_on[0] = bi
             hear(bi)
-            hear(bi + 1)
+            if not fast_audio:  # never pre-download audio beyond the desired highlights
+                hear(bi + 1)
             bw = heard.pop(bi).result()
         _set(job, progress=max(job["progress"], 0.14 + 0.78 * (b - lo) / max(1, hi - lo)))
         words += [dict(w, s=round(w["s"] + shift, 2), e=round(w["e"] + shift, 2)) for w in bw]
@@ -1011,6 +1164,8 @@ def _run_job(job):
         if left <= 0 or len(bw) < 8:
             job["done_blocks"] = bi + 1
             save(job)
+            if _scan_quota_met(job):
+                break
             continue
         quota = max(1, math.ceil(left / (len(blocks) - bi)))
         # Uploaded/local videos: rerank up to 12 AI candidates by visual motion
@@ -1034,11 +1189,14 @@ def _run_job(job):
                         candidate["_visual_info"] = neon_signals.analyze(video, base + rs, base + re, timeout=10)
                     return neon_signals.boost(candidate["_visual_info"])
         s0 = int((a - lo) / 16000)
-        found, ai = brain.find_clips(bw, db[s0: s0 + int((b - a) / 16000) + 1], (b - a) / 16000, job["title"],
+        levels = (media.loudness_per_second(audio[a:b]) if fast_audio
+                  else db[s0: s0 + int((b - a) / 16000) + 1])
+        found, ai = brain.find_clips(bw, levels, (b - a) / 16000, job["title"],
                                      job["uploader"], quota, int(o["min_len"]), int(o["max_len"]), notes.append,
                                      clip_mode=o.get("clip_mode", "gaming"), campaign_destination=o.get("campaign_destination", ""),
                                      gta6_only_live=o.get("gta6_only_live", False), taste_weights=taste_weights,
-                                     visual_ranker=visual_ranker)
+                                     visual_ranker=visual_ranker, game=game_name,
+                                     custom_campaign=job.get("custom_campaign"))
         tokens += ai.get("tokens", 0)
         model = ai.get("model") or model
         if ai.get("note"):
@@ -1048,11 +1206,51 @@ def _run_job(job):
                      end=round(c["end"] + shift, 2), style=o["style"], layout=o["layout"], caption_base=o.get("caption_base", "FFFFFF"),
                      caption_active=o.get("caption_active", "6BD7FF"), hook_box=o.get("hook_box", "FFFFFF"),
                      hook_text=o.get("hook_text", "14100E"), facecam_review=o.get("facecam_review", False), cta_enabled=o.get("cta_enabled", False), cta_creator_name=o.get("cta_creator_name") or job.get("uploader", ""), status="queued", version=0)
+            # Upstream creator-wide campaign copy. Keep the existing hook_text
+            # field as a COLOR; the new overlay_hook_text is the actual headline.
+            # Protected GTA VI/Expedia campaigns retain their own rules/copy.
+            if o.get("clip_mode") in ("gaming", "irl") and not o.get("campaign_destination"):
+                if o.get("overlay_hook_text"):
+                    c["hook"] = o["overlay_hook_text"]
+                if o.get("description_text"):
+                    c["description"] = o["description_text"]
+                    c["fixed_description"] = True
+            if o.get("clip_mode") == "gaming" and game_name and not c.get("fixed_description"):
+                # Upstream game tags, but keep special GTA6 and Expedia campaign copy intact.
+                block_words = [dict(w, s=w["s"] + shift) for w in bw]
+                hashtags.apply(c, block_words, job["title"], job["uploader"], game_name)
+            # Custom campaigns are opt-in and independent of special GTA VI/Expedia presets.
+            # Each job stores a copy so later campaign edits do not silently rewrite old clips.
+            selected_campaign = job.get("custom_campaign")
+            if selected_campaign and o.get("clip_mode") in ("gaming", "irl"):
+                c["custom_campaign_id"] = selected_campaign["id"]
+                c["custom_campaign_name"] = selected_campaign["name"]
+                if selected_campaign.get("hook_text"):
+                    c["hook"] = selected_campaign["hook_text"]
+                if selected_campaign.get("description_text"):
+                    c["description"] = selected_campaign["description_text"]
+                    c["fixed_description"] = True
+                if selected_campaign.get("hashtags"):
+                    used = set()
+                    merged = []
+                    for tag in (selected_campaign["hashtags"] + (c.get("hashtags") or [])):
+                        tag = str(tag).lstrip("#")
+                        if tag and tag.casefold() not in used:
+                            merged.append(tag)
+                            used.add(tag.casefold())
+                    c["hashtags"] = merged[:12]
+            workspace = creators.get(job.get("creator")) if job.get("creator") else None
+            creator_branding.decorate_clip(c, job, workspace.get("name", "") if workspace else "")
             job["clips"].append(c)
             futures.append((renders.submit(ctx.bind(make), c, list(words)), c))
-        job["ai"] = {"model": model, "tokens": tokens, "note": "", "log": notes[-5:]}
+        job["ai"] = {"model": model, "tokens": tokens,
+                     "note": ai.get("note", "") if job.get("custom_campaign") and not model else "",
+                     "log": notes[-5:]}
         job["done_blocks"] = bi + 1       # a restart from here on carries on with the next part
         save(job)
+        if _scan_quota_met(job):
+            notes.append(f"Stopped audio analysis after finding {len(job['clips'])} requested clips.")
+            break
     _check_cancel(job)
     if futures:
         _set(job, stage="Finishing the clips", progress=max(job["progress"], 0.92),

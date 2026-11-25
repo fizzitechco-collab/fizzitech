@@ -27,7 +27,7 @@ def main() -> int:
            "PEAKCUT_SMTP_HOST": "", "PEAKCUT_VERIFY_EMAIL": "1",   # the tests cover the confirm-your-email rule
            "GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": "", "GOOGLE_CLIENT_FILE": "", "PYTHONUNBUFFERED": "1",
            "PEAKCUT_AI_KEY": "", "PEAKCUT_AI_KEY_FILE": "", "PEAKCUT_AI_MODELS": "",
-           "PEAKCUT_UPLOAD_PART_MB": "5", "PEAKCUT_MAX_UPLOAD_MB": "64"}
+           "PEAKCUT_UPLOAD_PART_MB": "5", "PEAKCUT_MAX_UPLOAD_MB": "64", "PYTHONIOENCODING": "utf-8"}
     log = data / "server.log"
     failed = []
     with log.open("w", encoding="utf-8") as out:
@@ -49,9 +49,15 @@ def main() -> int:
                 ("abuse and limits", ["tests/test_abuse.py", BASE, str(ROOT)]),
                 ("queue under load", ["tests/test_load_queue.py", str(ROOT)]),
                 ("Windows job saving and download progress", ["tests/test_job_save_windows.py"]),
+                ("smart audio scan and facecam preview", ["tests/test_smart_audio.py"]),
+                ("Auto 4K source and live quality", ["tests/test_source_quality.py"]),
                 ("deleting and bulk actions", ["tests/test_delete.py"]),
                 ("big uploads in pieces", ["tests/test_upload_parts.py", BASE]),
                 ("AI services", ["tests/test_ai.py"]),
+                ("API and connected-app key saving", ["tests/test_keys_persistence.py"]),
+                ("upstream creator campaign copy and post text", ["tests/test_upstream_campaign_sync.py"]),
+                ("Custom Campaigns dashboard, ownership and AI matching", ["tests/test_custom_campaigns.py"]),
+                ("Auto-post eligibility and diagnostics", ["tests/test_autopost_diagnostics.py"]),
                 ("no sign-in, and the AI key from the dashboard", ["tests/test_local.py"]),
                 ("Hindi and Urdu captions in Roman letters", ["tests/test_roman.py"]),
                 ("connecting YouTube, Instagram and TikTok", ["tests/test_connect.py"]),

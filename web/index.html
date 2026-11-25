@@ -909,8 +909,17 @@ input::placeholder{color:#777C85}
 .watch-row b,.watch-row small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .watch-row small{color:#8A919A}
 .webcam-dialog{width:min(92vw,880px);max-width:880px;background:#18191D;color:#F3F4F6}
+.webcam-dialog h2{color:#F3F4F6!important}
 .webcam-preview{width:100%;position:relative;cursor:crosshair;user-select:none;overflow:hidden;background:#07080A;border:1px solid #44474F;border-radius:10px;line-height:0}
 .webcam-preview img{display:block;width:100%;height:auto;pointer-events:none}
+
+.webcam-preview #webcam-box{box-sizing:border-box}
+.webcam-preview.picking{touch-action:none}
+.webcam-preview .webcam-placeholder{padding:65px 20px;text-align:center;line-height:1.5;color:#AEB3BC;font-size:13px}
+.facecam-link-btn{min-width:max-content}
+.facecam-link-btn.selected{border-color:#8FBE9F;color:#CFF4DB}
+.facecam-timebar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin:10px 0}
+.facecam-timebar label{max-width:175px}
 .webcam-preview #webcam-box{position:absolute;display:none;border:3px solid #FAFAFA;box-shadow:0 0 0 2000px rgba(0,0,0,.22),0 0 0 1px #0C0E10 inset;pointer-events:none}
 @media(max-width:1050px){.watch-live-btn{font-size:12px;padding:0 10px}}
 @media(max-width:760px){.composer-bar{flex-wrap:wrap!important}.watch-live-btn{order:3;width:100%}.composer-bar .hint{display:none}.gta-hint{padding:10px}}
@@ -1127,6 +1136,14 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
   color: #E9ECF0;
 }
 
+.apdiag{display:grid;gap:12px;margin-top:12px}
+.apdiag-status{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.apdiag-status strong,.apdiag-status span{font-size:12px;background:#1c222b;border:1px solid #303743;border-radius:9px;padding:7px 11px;color:#e1e6ee}
+.apdiag-notices{display:grid;gap:6px}.apdiag-notices p{display:flex;align-items:flex-start;gap:9px;color:#ffc5b9;font-size:12px;padding:10px 12px;border-radius:10px;background:#251b1a;border:1px solid #613329}
+.apdiag-notices svg,.apdiag-ok svg{height:15px;width:15px;flex:none;margin-top:2px}
+.apdiag-ok{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#b4edbf}
+.apdiag-recent{display:grid;gap:8px}.apdiag-recent>div{padding:9px 12px;border:1px solid #2d343e;background:#171b21;border-radius:10px;display:grid;grid-template-columns:1fr auto;column-gap:10px}
+.apdiag-recent b{font-size:12px;color:#f4f6f9}.apdiag-recent small{color:#aeb9c6}.apdiag-recent p{font-size:12px;color:#bdc6d2;grid-column:1/-1;margin-top:4px}
 </style>
 <style id="legend-make-clips-max-v1">
 #legend-clip-count-panel{background:#15171C!important;border:1px solid #31363D!important;color:#F4F5F7!important;border-radius:14px}
@@ -1144,6 +1161,11 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 .legend-clip-steps .nstep .ctl button{color:#F4F6F8!important;min-width:30px;min-height:30px}
 .legend-clip-steps .nstep .ctl button:hover{background:#F5F6F8!important;color:#111317!important}
 .legend-clip-hint{margin-top:11px!important;color:#B5BBC4!important;font-size:12px}
+.legend-duration-presets{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
+.legend-duration-presets span{font-size:11px;color:#AFB6C0;padding-right:4px}
+.legend-duration-presets button{border:1px solid #353B46;background:#22262F;color:#CFD5DE;border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer}
+.legend-duration-presets button[aria-pressed=true]{border-color:#F2F3F5;background:#F2F3F5;color:#15181E;font-weight:700}
+
 @media(max-width:680px){.legend-clip-steps{grid-template-columns:1fr}}
 
 /* LEGEND NEON V1: unobtrusive dark rating controls; white text remains visible on hover. */
@@ -1154,6 +1176,34 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 .lc-star.on{color:#F8F9FA!important}
 .lc-star:hover,.lc-star:focus-visible{background:#F3F4F6!important;color:#101114!important;outline:2px solid #9EA3AB}
 .lc-star:hover ~ .lc-star{opacity:.9}
+</style>
+
+<style id="legend-custom-campaigns-v1">
+.lc-c-intro{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:12px 0 24px}
+.lc-c-intro h2{font-size:26px;font-weight:750;color:#f6f7fa}
+.lc-c-intro p{color:#b4bbc6;margin-top:5px;max-width:720px}
+.lc-campaign-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.lc-c-stat{background:#111419;border:1px solid #252932;border-radius:14px;padding:20px;display:grid;gap:8px}
+.lc-c-stat b{font-size:30px;line-height:1;color:#f8f9fb}.lc-c-stat small{color:#abb2bd}
+.lc-c-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px}
+.lc-c-card{border:1px solid #2a2f38;border-radius:16px;background:#12151b;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:315px}
+.lc-c-card h3{font-size:20px;color:#f5f7fa}.lc-c-top,.lc-c-meta,.lc-c-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lc-c-state{border-radius:50px;padding:3px 10px;font-weight:700;font-size:11px;background:#343434;color:#fff}
+.lc-c-state.active{background:#133521;color:#8ff5b0}.lc-c-state.paused{background:#302921;color:#f5d19a}
+.lc-c-muted{color:#969fae;font-size:12px}.lc-c-brand{color:#f4f5f7;font-size:12px;font-weight:650}
+.lc-c-brief{color:#b5bcc7;white-space:pre-wrap;max-height:92px;overflow:auto}
+.lc-c-preview{color:#c4cad4;font-size:12px}.lc-c-tags{display:flex;flex-wrap:wrap;gap:6px;min-height:22px}
+.lc-c-tag{font-size:11px;color:#d9dfec;background:#242934;border:1px solid #353b47;padding:3px 8px;border-radius:7px}
+.lc-c-meta{border-top:1px solid #272d35;padding-top:12px;color:#aeb7c5;font-size:12px;margin-top:auto}
+.lc-c-actions{justify-content:flex-start}.lc-c-actions .btn{min-height:34px}
+.lc-c-empty{border:1px dashed #363c49;border-radius:18px;background:#12161b;padding:52px 20px;text-align:center;display:grid;gap:10px;justify-items:center}
+.lc-c-empty h3{font-size:20px;color:#f5f6f8}.lc-c-empty p,.lc-c-footnote{color:#aeb6c1;font-size:12px}
+.lc-c-empty-icon svg{height:40px;width:40px;color:#e4e9f0}
+.lc-c-footnote{margin-top:24px}
+.lc-c-filter{display:flex;align-items:center;gap:10px;margin:10px 0 18px;padding:10px 13px;background:#141820;border:1px solid #353b46;border-radius:12px;color:#cdd3de;font-size:13px}.lc-c-filter svg{width:17px;height:17px}
+.lc-why{color:#aeb7c3;font-size:12px;line-height:1.45;display:flex;gap:5px;align-items:flex-start;margin:2px 0 4px}.lc-why svg{width:13px;height:13px;margin-top:2px;flex:none}.lc-c-tag svg{width:12px;height:12px;margin-right:5px;vertical-align:-2px}.lc-c-dialog{max-height:min(88vh,780px);overflow:auto}.lc-c-dialog textarea{min-height:78px;resize:vertical}
+.lc-c-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.lc-c-intro{align-items:start;flex-direction:column}.lc-campaign-summary,.lc-c-form-row{grid-template-columns:1fr}.lc-c-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1181,6 +1231,7 @@ main :is(.pick-opt, .pick-btn, .step, .chip, .tile-o) {
 <div class="pop menu" id="acctpop" role="menu" hidden></div>
 
 <script src="/assets/gradient-ascii.js"></script>
+<script src="/assets/campaigns.js"></script>
 <script>
 /* ============================================================ helpers */
 const $ = (s, r = document) => r.querySelector(s);
@@ -1395,12 +1446,13 @@ function startTour() {
 }
 
 /* ============================================================ state */
+const safeList = value => Array.isArray(value) ? value : [];
 const S = {status:{styles:{}, layouts:{}}, jobs:[], creators:[], accounts:[], overview:null, settings:null,
-           view:"overview", ctab:"clips"};
+           view:"overview", ctab:"clips", campaigns:[], campaignChoice:"", campaignFilter:""};
 const D = {jid:null, cid:null, sig:""};
 const creatorId = () => S.view.startsWith("c:") ? S.view.slice(2) : null;
-const creator = () => S.creators.find(c => c.id === creatorId());
-const jobOf = id => S.jobs.find(j => j.id === id);
+const creator = () => safeList(S.creators).find(c => c.id === creatorId());
+const jobOf = id => safeList(S.jobs).find(j => j.id === id);
 
 /* ============================================================ shell */
 function aiCard() {
@@ -1496,7 +1548,7 @@ async function openBell() {
   try {
     const d = await api("/api/notifications");
     p.innerHTML = `<div class="pop-head"><h3>Notifications</h3>${d.unread ? `<button data-act="bellread">Mark all as read</button>` : ""}</div>
-      ${d.items.length ? `<div class="pop-list">${d.items.map(n => `<button class="nt k-${esc(n.kind)} ${n.read ? "" : "new"}" data-act="ntgo" data-link="${esc(n.link)}">
+      ${safeList(d.items).length ? `<div class="pop-list">${safeList(d.items).map(n => `<button class="nt k-${esc(n.kind)} ${n.read ? "" : "new"}" data-act="ntgo" data-link="${esc(n.link)}">
         <i>${ic(NT_ICON[n.kind] || "bell")}</i><span class="tx"><b>${esc(n.title)}</b>${n.body ? `<span>${esc(n.body)}</span>` : ""}<small>${ago(n.t)}</small></span></button>`).join("")}</div>`
         : `<div class="pop-empty">${ic("bell")}Nothing yet. Recordings, finished clips and posts that need a look show up here.</div>`}`;
     if (d.unread) setTimeout(markRead, 1500);
@@ -1567,7 +1619,7 @@ function updateHow() {
   const cmd = (label, text) => `<h3>${label}</h3><div class="cmd"><code>${esc(text)}</code><button class="btn sm" type="button" data-act="copytext" data-t="${esc(text)}">${ic("copy")}Copy</button></div>`;
   d.innerHTML = `<form method="dialog" class="dlg upd"><h2>${up.restart ? "The new version is ready" : "A new version of Legend Clipper is out"}</h2>
     <p class="help">${up.restart ? "The new files are already in the Legend Clipper folder. <b>Close Legend Clipper and start it again</b> to use them." : `You're on <b>${esc(up.current)}</b>. ${up.behind ? `${up.behind} update${up.behind === 1 ? " has" : "s have"} been added since.` : "Newer changes have been added since."}`} Your settings, keys and clips stay as they are.</p>
-    ${up.notes.length ? `<ul>${up.notes.map(n => `<li>${esc(n.title)} <small>${esc(n.date)}</small></li>`).join("")}</ul>` : ""}
+    ${safeList(up.notes).length ? `<ul>${safeList(up.notes).map(n => `<li>${esc(n.title)} <small>${esc(n.date)}</small></li>`).join("")}</ul>` : ""}
     ${up.restart ? "" : cmd("Ask your AI coding assistant (Claude, Cursor, Copilot...)", ai) + cmd("Or run it yourself, in the Legend Clipper folder", "git pull && pip install -r requirements.txt")}
     <p class="sub">${up.restart ? "" : "Then stop Legend Clipper and start it again. With Docker, run <code>git pull && docker compose up -d --build</code> instead. "}<a class="lnk" href="${esc(up.url)}" target="_blank" rel="noopener">See every change on GitHub</a></p>
     <div class="dlg-foot"><button class="btn" value="later">Remind me next version</button><button class="btn primary" value="ok" autofocus>Got it</button></div></form>`;
@@ -1592,10 +1644,11 @@ function moveInd() {
 function drawShell() {  const nav = (v, icon, label, extra = "") => `<button class="nav-item ${S.view === v ? "on" : ""}" data-act="go" data-v="${esc(v)}" title="${esc(label)}">${icon}<span class="label">${esc(label)}</span>${extra}</button>`;
   put($("#nav"), nav("overview", navIc("home", "overview"), "Home") +
     nav("auto-clipping", navIc("bolt", "auto-clipping"), "Auto Clipping") +
-    nav("library", navIc("film", "library"), "All videos", (() => { const w = S.jobs.filter(j => ["queued", "running"].includes(j.status)).length;
-      return w ? `<span class="working" title="${w} working now"><i></i>${w} working</span>` : S.jobs.length ? `<span class="count">${S.jobs.length}</span>` : ""; })()) +
+    nav("campaigns", navIc("folder", "campaigns"), "Custom Campaigns") +
+    nav("library", navIc("film", "library"), "All videos", (() => { const w = safeList(S.jobs).filter(j => ["queued", "running"].includes(j.status)).length;
+      return w ? `<span class="working" title="${w} working now"><i></i>${w} working</span>` : safeList(S.jobs).length ? `<span class="count">${safeList(S.jobs).length}</span>` : ""; })()) +
     `<h4><span>Creators</span></h4>` +
-    S.creators.map(c => nav("c:" + c.id, cav(c), c.name,
+    safeList(S.creators).map(c => nav("c:" + c.id, cav(c), c.name,
       c.live_job ? `<span class="sb-tag rec" title="Recording now"><i></i>Rec</span>`
         : liveOn(c).length ? `<span class="sb-tag" title="Live on ${esc(liveOn(c).map(([k]) => PLAT[k].name).join(" and "))}"><i></i>Live</span>` : "")).join("") +
     `<button class="nav-item" data-act="newcreator" title="New creator">${ic("plusc")}<span class="label">New creator</span></button>` +
@@ -1608,8 +1661,8 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
       <span class="who">${S.status.accounts === false ? `<b>Settings</b><span>AI key, connected apps</span>` : `<b>${esc(S.status.user.name)}</b><span>${esc(S.status.user.email)}</span>`}</span></button>
       <button class="icon-btn bell" data-act="bell" title="Notifications" aria-label="Notifications${S.status.unread ? `, ${S.status.unread} new` : ""}" aria-haspopup="dialog">${ic("bell")}${S.status.unread ? `<span class="dotn">${S.status.unread > 9 ? "9+" : S.status.unread}</span>` : ""}</button></div>` : ""));
   const c = creator();
-  const recording = S.creators.filter(x => x.live_job).length;
-  let title = {overview:"Home", library:"All videos", "auto-clipping":"GTA 6 Auto Clipping", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
+  const recording = safeList(S.creators).filter(x => x.live_job).length;
+  let title = {overview:"Home", library:"All videos", "auto-clipping":"GTA 6 Auto Clipping", campaigns:"Custom Campaigns", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
   if (S.view === "usage") sub = "What the AI has been used for.";
   if (S.view === "overview") sub = `${greeting()}. ${S.creators.length} creator${S.creators.length === 1 ? "" : "s"}${recording ? `, ${recording} recording now` : ""}.`;
   if (S.view === "library") sub = "Every video and recording, across all creators.";
@@ -1644,7 +1697,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
   put($("#title"), `<span>${esc(title)}</span>`); put($("#subtitle"), subHtml ?? esc(sub)); put($("#actions"), act);
 }
 
-const ROUTES = {overview: "", library: "videos", "auto-clipping":"auto-clipping", settings: "settings", usage: "usage"};
+const ROUTES = {overview: "", library: "videos", "auto-clipping":"auto-clipping", campaigns:"campaigns", settings: "settings", usage: "usage"};
 function pathFor(v, tab) {
   if (v.startsWith("c:")) return `/app/creators/${encodeURIComponent(v.slice(2))}${tab && tab !== "clips" ? "/" + tab : ""}`;
   if (v === "settings") return "/app/settings" + (tab ? "/" + tab : "");
@@ -1664,7 +1717,7 @@ function remember(v, tab, how = "push") {
 }
 addEventListener("popstate", () => { const [v, tab] = fromPath(location.pathname); go(v, tab, true); });
 function go(v, tab, fromHistory) {
-  if (v.startsWith("c:") && !S.creators.some(c => "c:" + c.id === v)) v = "overview";
+  if (v.startsWith("c:") && !safeList(S.creators).some(c => "c:" + c.id === v)) v = "overview";
   S.view = v; if (tab) S.ctab = tab; else if (!v.startsWith("c:")) S.ctab = "clips";
   if (v === "settings") S.stab = setTabs().some(x => x[0] === tab) ? tab : setTabs()[0][0];
   if (!fromHistory) remember(v, v.startsWith("c:") ? S.ctab : v === "settings" ? S.stab : null);
@@ -1675,8 +1728,9 @@ function go(v, tab, fromHistory) {
   $("#heroSlot").innerHTML = v === "overview" ? `<section class="hero"><div class="ga-bg" id="appAscii" aria-hidden="true"></div><h2>What do you want to clip today?</h2>
       <p>Paste a link or drop in videos. You get captioned shorts back.</p><div id="add"></div></section>` : "";
   if (v === "overview") view.innerHTML = `<div id="ov"></div>`;
-  else if (v === "library") view.innerHTML = `<div id="add"></div><div id="jobs"></div>`;
+  else if (v === "library") view.innerHTML = `<div id="add"></div><div id="campaign-filter"></div><div id="jobs"></div>`;
   else if (v === "auto-clipping") view.innerHTML = `<div id="gta-auto"></div>`;
+  else if (v === "campaigns") view.innerHTML = `<div id="campaigns-page"></div>`;
   else if (v === "settings") view.innerHTML = `<div id="sform"></div>`;
   else if (v === "usage") { view.innerHTML = `<div id="usage"></div>`; loadUsage(); }
   else view.innerHTML = `<div id="stream"></div><div id="cbody"></div>`;   // the live player stays put across tabs: no restart, no rebuffer
@@ -1684,6 +1738,7 @@ function go(v, tab, fromHistory) {
   if (v === "overview" && window.GradientASCII) { try { window._gaStop = GradientASCII($("#appAscii"), {colors: ["#ffb27a", "#ffffff", "#ffd2ae", "#ffe0c2", "#fff1e6"], shape: "horizon", lightMode: true, cellSize: 16, density: 0.8, glyphOpacity: 0.26, gradientOpacity: 0.32, glow: 0.06, grain: 0.06, mouseInteraction: false, clickEffect: "none"}); } catch {} }
   if (v === "settings") drawSettings();
   if (v === "auto-clipping") drawGtaAuto();
+  if (v === "campaigns") loadCampaigns().catch(e => { const el=$("#campaigns-page"); if(el) el.textContent="Could not load campaigns: "+e.message; });
   if (v.startsWith("c:")) setTab(S.ctab);
   $("#main").scrollTo(0, 0); render();
   if (v === "overview") loadOverview();
@@ -1707,7 +1762,7 @@ function drawAdd(variant) {
     <div class="att" id="att"><div><div class="att-in" id="attIn"></div></div></div>
     <div class="composer-bar">
       <button type="button" class="chip" data-act="pickfile">${ic("up")}Upload video</button>
-      ${c ? "" : picker("o_creator", "File under creator", [{v:"", label:"No creator", icon:"user"}, ...S.creators.map(x => ({v:x.id, label:x.name, img:x.profile?.pic && x.profile.channel === x.channel ? avatarUrl(x) : ""}))], "")}
+      ${c ? "" : picker("o_creator", "File under creator", [{v:"", label:"No creator", icon:"user"}, ...safeList(S.creators).map(x => ({v:x.id, label:x.name, img:x.profile?.pic && x.profile.channel === x.channel ? avatarUrl(x) : ""}))], "")}
       <button type="button" class="chip" data-act="toggleopts" aria-expanded="false">${ic("sliders")}Options</button>
       <span class="grow"></span><span class="hint">or drop a video file here</span>
       <button type="button" class="btn watch-live-btn" data-act="watchlivestream">${ic("radio")}Watch LIVE URL · 5m</button>
@@ -1724,6 +1779,10 @@ function drawAdd(variant) {
           ${stepper('o_min', 'Shortest', c?.min_len ?? 15, 5, 120, 5, 's')}
           ${stepper('o_maxlen', 'Longest', c?.max_len ?? 60, 10, 180, 5, 's')}
         </div>
+        <div class="legend-duration-presets" role="group" aria-label="Quick clip duration presets">
+          <span>Duration presets:</span>
+          ${[["auto","Auto · 15–60s"],["short","Short · 15–30s"],["medium","Medium · 30–60s"],["long","Long · 60–120s"]].map(([k,n])=>`<button type="button" data-duration-preset="${k}" aria-pressed="false">${n}</button>`).join("")}
+        </div>
         <p class="help legend-clip-hint">Custom: choose 1–100 clips. MAX: search for up to 100 worthwhile moments; it won't invent filler clips. High limits use more AI calls, downloads and render time.</p>
       </div>
       <div class="ob wide"><div class="ot">Clip type</div><input type="hidden" id="o_clip_mode" value="${["gaming","irl","gta6"].includes(optionSelectedValue("o_clip_mode", "gaming")) ? optionSelectedValue("o_clip_mode", "gaming") : "gaming"}"><div class="seg mode-seg" role="group" aria-label="Clip type">
@@ -1733,18 +1792,28 @@ function drawAdd(variant) {
           <label class="f">Is this stream exclusively GTA 6?<select id="o_gta6_only_live">${opts({no:"NO — mixed games may appear; clip ONLY GTA 6",yes:"YES — reject streams that aren't GTA 6-only"},localStorage.getItem("legend_gta6_only_live") || "no")}</select></label>
         </div>
       </div>
+      <div class="ob wide"><div class="ot">Custom campaign (optional)</div>
+        <label class="f">Campaign for this video<select id="o_custom_campaign">
+          <option value="">None — regular clipping</option>
+          ${(S.campaigns || []).filter(x => x.status === "active").map(x => `<option value="${esc(x.id)}" ${S.campaignChoice === x.id ? "selected" : ""}>${esc(x.name)}${x.brand ? " · " + esc(x.brand) : ""}</option>`).join("")}
+        </select></label>
+        <p class="help">Apply this campaign's optional hook, description and hashtags to NEW clips only. Separate from GTA 6. <button type="button" class="btn sm" data-act="go" data-v="campaigns">Manage Campaigns</button></p>
+      </div>
       <div class="ob"><div class="ot">Caption style</div>${choice("o_style", Object.entries(S.status.styles).map(([k, v]) => ({v:k, label:v, prev:capPrev(k)})), optionSelectedValue("o_style", c?.style ?? "bounce"))}</div>
       <div class="ob"><div class="ot">Layout</div>${choice("o_layout", Object.entries(S.status.layouts).map(([k, v]) => ({v:k, label:LAYOUT_SHORT[k] || v, title:v, prev:`<span class="lay-prev ${esc(k)}"><span class="ph"><i></i></span></span>`})), optionSelectedValue("o_layout", c?.layout ?? "auto"))}</div>
       <div class="ob"><div class="ot">Webcam region (full background)</div><label class="f">Webcam corner<select id="o_facecam_position">${opts({auto:"Auto detect facecam", top_left:"Top left", top_right:"Top right", bottom_left:"Bottom left", bottom_right:"Bottom right"}, localStorage.getItem("peakcut_facecam_position") || c?.facecam_position || "auto")}</select></label><label class="f" style="margin-top:8px">Webcam region size<select id="o_facecam_size">${opts({small:"Small panel", medium:"Medium panel", large:"Large panel"},localStorage.getItem("peakcut_facecam_size") || c?.facecam_size || "medium")}</select></label><label class="f" style="margin-top:8px">Exact webcam rectangle (optional)<input id="o_facecam_rect" placeholder="x,y,width,height (0..1)" value="${esc(localStorage.getItem("peakcut_facecam_rect") || c?.facecam_rect || "")}"></label><p class="help">Entire rectangular webcam area, including its room/background—not just the face. Select the corner if Smart misses it. For precise placement enter fractions such as 0.02,0.03,0.36,0.36.</p></div>
       <div class="ob"><div class="ot">AI analysis</div><input type="hidden" id="o_analysis_mode" value="${localStorage.getItem('legend_analysis_mode') === 'deep' ? 'deep' : 'fast'}"><div class="seg" role="group" aria-label="AI analysis mode">
         ${[['fast','Fast / audio + Gemini'],['deep','Deep / visual motion']].map(([v,label])=>`<button type="button" data-seg="o_analysis_mode" data-v="${v}" aria-pressed="${(localStorage.getItem('legend_analysis_mode') || 'fast') === v}">${v === 'fast' ? '⚡ Fast' : '◈ Deep'}<small>${label}</small></button>`).join('')}</div><p class="help">Deep checks sampled frames of selected clips for gameplay motion and scene changes. It may take longer; it never downloads the entire livestream video for this analysis.</p></div>
-      <div class="ob"><div class="ot">Export quality</div><input type="hidden" id="o_quality" value="${["360","720","1080","2160"].includes(localStorage.getItem("peakcut_quality")) ? localStorage.getItem("peakcut_quality") : "360"}"><div class="seg" role="group" aria-label="Export quality">
-        ${[["360","Quick"],["720","HD"],["1080","Max / Full HD"]].map(([q,label])=>`<button type="button" data-seg="o_quality" data-v="${q}" aria-pressed="${(localStorage.getItem("peakcut_quality") || "360")===q}">${q}p<small>${label}</small></button>`).join("")}</div><p class="help">For HD, Legend Clipper demands genuine high-res video. Downloads are capped at genuine 1080p maximum to save bandwidth. No silent 360p upscaling.</p></div>
+      <div class="ob wide"><div class="ot">Maximum source resolution / Export quality</div><input type="hidden" id="o_quality" value="${["0","360","720","1080","2160"].includes(localStorage.getItem("peakcut_quality")) ? localStorage.getItem("peakcut_quality") : "0"}"><div class="seg" role="group" aria-label="Export quality">
+        ${[["0","Auto · up to 4K"],["360","Quick"],["720","HD"],["1080","Full HD"],["2160","4K only"]].map(([q,label])=>`<button type="button" data-seg="o_quality" data-v="${q}" aria-pressed="${(localStorage.getItem("peakcut_quality") ?? "0")===q}">${q==="0"?"AUTO":q+"p"}<small>${label}</small></button>`).join("")}</div><p class="help"><b>Recommended: Auto.</b> The video downloads at the highest accessible source resolution up to 4K (2160p), then exports no larger than the actual downloaded source: 1080p stream → 1080p, 4K stream → 4K. 4K uses more disk, bandwidth and CPU/GPU. Fixed modes retain the existing quality controls.</p></div>
       <div class="ob wide"><div class="ot">Caption colors</div><div class="color-grid">${colorButtons("o_caption_active", "Highlighted word", localStorage.getItem("peakcut_caption_active") || "6BD7FF", [{v:"6BD7FF",label:"Cyan"},{v:"FF8B33",label:"Orange"},{v:"FFE34D",label:"Yellow"},{v:"FF5252",label:"Red"},{v:"5AD47C",label:"Green"},{v:"B67DFF",label:"Purple"}], "Main caption text stays white. This color is used for the punch word while it is spoken.")}${colorButtons("o_hook_text", "Hook text", localStorage.getItem("peakcut_hook_text") || "14100E", [{v:"14100E",label:"Black"},{v:"FF8B33",label:"Orange"},{v:"FF5252",label:"Red"},{v:"3C3CFF",label:"Blue"},{v:"5AD47C",label:"Green"},{v:"FFFFFF",label:"White"}], "Top hook banner text, like TRAPPING 200 PLAYERS.")}</div><div class="color-grid" style="margin-top:10px">${colorButtons("o_hook_box", "Hook box background", localStorage.getItem("peakcut_hook_box") || "FFFFFF", [{v:"FFFFFF",label:"White"},{v:"14100E",label:"Black"},{v:"FF8B33",label:"Orange"},{v:"FFE34D",label:"Yellow"},{v:"6BD7FF",label:"Cyan"},{v:"FFD4E8",label:"Pink"}], "Background color for the top hook box.")}</div></div>
       <div class="ob wide"><div class="ot">Captions & webcam review</div><div class="fields">
         <label class="f">Spoken language captions<select id="o_caption_language">${opts({auto:"Auto — Roman Hindi/Hinglish if spoken",roman:"Original speech in Roman letters",english:"Translate non-English to English"},localStorage.getItem("legend_caption_language") || "auto")}</select></label>
         <label class="sw"><input id="o_facecam_review" type="checkbox" ${(localStorage.getItem("legend_facecam_review") === "1") || (localStorage.getItem("legend_facecam_review") === null && optionSelectedValue("o_clip_mode", "gaming") === "gta6") ? "checked" : ""}><span>Choose facecam before rendering<small>Preview an image, click two corners around the full webcam, or Skip facecam</small></span></label>
       </div></div>
+      <div class="ob wide"><div class="ot">End-of-clip shoutout</div>
+        <label class="sw"><input id="o_watch_more_enabled" type="checkbox" ${(localStorage.getItem("legend_watch_more_enabled") === "1" || (localStorage.getItem("legend_watch_more_enabled") === null && !!c?.watch_more_enabled)) ? "checked" : ""}><span>Show "Watch more on Creator Platform" at the end<small>Last 3 seconds · slightly below center · automatically uses selected creator and source platform (YouTube / Twitch / Kick). Turn off to keep the clip clean.</small></span></label>
+        <p class="help">Requires "File under creator" selection (or clips made inside that creator's workspace). Local file uploads have no verified source platform and show only the creator name. Protected campaigns are unaffected.</p></div>
       <div class="ob"><div class="ot">Part of the video</div><div class="range">
         <label>From<input id="o_from" type="number" min="0" placeholder="start" aria-label="From minute">min</label>${ic("arrowr")}
         <label>To<input id="o_to" type="number" min="0" placeholder="end" aria-label="Up to minute">min</label></div></div>
@@ -1863,13 +1932,22 @@ document.addEventListener("keydown", e => {
   os[(i + (e.key === "ArrowDown" ? 1 : -1) + os.length) % os.length].focus();
 });
 const targetCreator = () => creatorId() || $("#o_creator")?.value || "";
+// When selecting "File under creator" from Home/All videos, use that
+// creator's saved end-CTA preference (unless the user changes it afterwards).
+document.addEventListener("change", e => {
+  if (e.target?.id !== "o_creator") return;
+  const selected = safeList(S.creators).find(c => c.id === e.target.value);
+  const input = $("#o_watch_more_enabled");
+  if (input) input.checked = !!selected?.watch_more_enabled;
+});
 function jobOptions() {
   const n = id => { const el = $(id); if (!el || el.value === "") return null; return Number(el.value); };
   const count = n("#o_max") ?? 6;
   if (!Number.isInteger(count) || count < 1 || count > 100) throw new Error('Enter a clip count between 1 and 100, or choose MAX.');
   const shortest = n("#o_min") ?? 15, longest = n("#o_maxlen") ?? 60;
   if (!Number.isFinite(shortest) || !Number.isFinite(longest) || shortest < 5 || longest > 180 || shortest >= longest) throw new Error('Shortest must be at least 5s and less than Longest (up to 180s).');
-  const o = {max_clips:count, min_len:shortest, max_len:longest, style:$("#o_style").value, layout:$("#o_layout").value, quality:n("#o_quality"), analysis_mode:$("#o_analysis_mode")?.value || "fast", caption_active:$("#o_caption_active")?.value || "6BD7FF", hook_box:$("#o_hook_box")?.value || "FFFFFF", hook_text:$("#o_hook_text")?.value || "14100E", clip_mode:$("#o_clip_mode")?.value || "gaming", gta6_only_live:$("#o_gta6_only_live")?.value === "yes", facecam_review:$("#o_facecam_review")?.checked || false, caption_language:$("#o_caption_language")?.value || "auto", facecam_position:$("#o_facecam_position")?.value || "auto", facecam_size:$("#o_facecam_size")?.value || "medium", facecam_rect:$("#o_facecam_rect")?.value || ""};
+  const o = {max_clips:count, min_len:shortest, max_len:longest, style:$("#o_style").value, layout:$("#o_layout").value, quality:n("#o_quality"), analysis_mode:$("#o_analysis_mode")?.value || "fast", caption_active:$("#o_caption_active")?.value || "6BD7FF", hook_box:$("#o_hook_box")?.value || "FFFFFF", hook_text:$("#o_hook_text")?.value || "14100E", clip_mode:$("#o_clip_mode")?.value || "gaming", gta6_only_live:$("#o_gta6_only_live")?.value === "yes", facecam_review:$("#o_facecam_review")?.checked || false, caption_language:$("#o_caption_language")?.value || "auto", facecam_position:$("#o_facecam_position")?.value || "auto", facecam_size:$("#o_facecam_size")?.value || "medium", facecam_rect:$("#o_facecam_rect")?.value || "", custom_campaign_id:$("#o_custom_campaign")?.value || "", watch_more_enabled:$("#o_watch_more_enabled")?.checked || false, scan_entire:localStorage.getItem("legend_clip_limit_mode") === "max"};
+  if (o.custom_campaign_id && o.clip_mode === "gta6") throw new Error("Custom Campaigns work with Gaming or IRL, not the GTA 6 preset. Choose Gaming or IRL.");
   try {
     localStorage.setItem("peakcut_facecam_rect", o.facecam_rect);
     localStorage.setItem("peakcut_facecam_position", o.facecam_position);
@@ -1881,6 +1959,7 @@ function jobOptions() {
     localStorage.setItem("legend_facecam_review", o.facecam_review ? "1" : "0");
     localStorage.setItem("legend_caption_language", o.caption_language);
     localStorage.setItem("legend_analysis_mode", o.analysis_mode);
+    localStorage.setItem("legend_watch_more_enabled", o.watch_more_enabled ? "1" : "0");
   } catch {}
   if (n("#o_from") !== null) o.range_start = n("#o_from") * 60;
   if (n("#o_to") !== null) o.range_end = n("#o_to") * 60;
@@ -1936,7 +2015,7 @@ function drawAtt() {
     const i = l.info;
     return rowHtml(A, {id: l.id, kind: "link", thumb: i.thumb ? `<img src="${i.thumb}" alt="">` : "", len: i.duration && !i.is_live ? fmtLen(i.duration) : "",
       title: i.title, sub: esc(i.uploader || "Video link"),
-      side: l.sending ? `<span class="ok up">Sending</span>` : i.is_live ? `<span class="ok live"><i></i>Live now</span>` : `<span class="ok">${ic("check")}Ready</span>`});
+      side: l.sending ? `<span class="ok up">Sending</span>` : !i.is_live ? `<button type="button" class="btn sm facecam-link-btn ${l.facecamRect ? "selected" : ""}" data-facecam-link="${esc(l.id)}">${l.facecamRect ? "✓ Facecam selected" : "Select facecam"}</button>` : i.is_live ? `<span class="ok live"><i></i>Live now</span>` : `<span class="ok">${ic("check")}Ready</span>`});
   }).join("");
   h += A.files.map(f => rowHtml(A, {id: f.id, kind: "file", thumb: `<video src="${f.src}#t=1" muted preload="metadata" playsinline></video>`,
     len: f.dur ? fmtLen(f.dur) : "", title: f.file.name,
@@ -1977,7 +2056,7 @@ function takeLink(A, u, input) {
   A.links.push(l); A.note = null;
   if (input) input.value = "";            // the box is free for the next link straight away
   drawAtt();
-  lookUp(u).then(info => { l.state = "ok"; l.info = info; }, e => { l.state = "bad"; l.msg = e.message; }).then(() => {
+  lookUp(u).then(info => { l.state = "ok"; l.info = info; if (!info.is_live && A.links.length === 1 && !A.busy && att() === A) setTimeout(() => { if (A.links.includes(l) && l.state === "ok" && !$("#formdlg")?.open) openLinkFacecamPicker(l.id); }, 120); }, e => { l.state = "bad"; l.msg = e.message; }).then(() => {
     drawAtt();
     if (A.queued && !A.links.some(x => x.state === "wait")) {
       A.queued = false;
@@ -2086,7 +2165,7 @@ async function makeClips() {
   let started = 0, failed = 0;
   for (const l of A.links.filter(x => x.state === "ok")) {
     l.sending = true; drawAtt();
-    try { await send("/api/jobs", {url: l.url, options: opts, creator: who}); l.state = "done"; started++; }
+    try { const linkOpts = l.facecamRect ? {...opts, facecam_rect:l.facecamRect, layout:"facecam", facecam_review:false} : l.forceCrop ? {...opts, layout:"crop", facecam_review:false} : opts; await send("/api/jobs", {url: l.url, options: linkOpts, creator: who}); l.state = "done"; started++; }
     catch (e) { l.state = "bad"; l.msg = e.message; failed++; }
     l.sending = false; drawAtt();
   }
@@ -2100,6 +2179,7 @@ async function makeClips() {
   A.files = A.files.filter(f => { if (f.state === "done") { URL.revokeObjectURL(f.src); return false; } return true; });
   A.busy = false; drawAtt();
   if (started) {
+    S.campaignChoice = ""; // Each job opts in deliberately; no accidental brand carry-over.
     toast(`${started === 1 ? "Your video is" : started + " videos are"} being clipped now.`, "ok");
     if (!failed && S.view === "overview") go(who ? "c:" + who : "library"); else tick();
   } else if (failed) toast("Nothing was started. The reason is shown on the video.", "bad");
@@ -2117,7 +2197,8 @@ function postPills(c) {
 async function watchLiveUrl() {
   const A=att(); const url = $("#url")?.value.trim() || A.links.find(l=>l.url)?.url || "";
   if (!url) return toast("Paste a YouTube/Twitch/Kick livestream or channel URL first.","bad");
-  try { const o=jobOptions(); o.quality=Number(o.quality)||1080;
+  try { const o=jobOptions(); /* Preserve Auto=0 for live-watch recordings. */
+    if (o.custom_campaign_id) throw new Error("Custom Campaigns currently work with Make clips, not Watch LIVE URL. Select None for live monitoring.");
     await send("/api/live-watch",{url,options:o},"POST");
     toast("Watching this live link every 5 minutes. A separate creator workspace was added.","ok");
     await updateLiveWatches(); await tick();
@@ -2129,6 +2210,116 @@ async function updateLiveWatches() {
     box.innerHTML=active.map(w=>`<div class="watch-row"><span class="watch-ind"></span><div><b>${esc(w.status === "recording" ? "Recording livestream" : "Watching live link · every 5 min")}</b><small>${esc(w.url)}${w.error && w.status!=="recording" ? " · "+esc(w.error) : ""}</small></div><button type="button" class="btn sm danger" data-act="stoplivewatch" data-id="${esc(w.id)}">Stop</button></div>`).join("");
   } catch(e) { box.textContent=""; }
 }
+
+/* Legend source facecam rectangle chooser. The preview is a real source frame. */
+async function openLinkFacecamPicker(linkId) {
+  const A=att(), link=A.links.find(l=>l.id===linkId && l.state==="ok");
+  if(!link || A.busy)return;
+  const dlg=$("#formdlg");
+  dlg.innerHTML=`<div class="dlg webcam-dialog">
+    <h2>Choose facecam from video</h2>
+    <p class="help">Drag around the FULL webcam and background. Drag inside to move or use the bottom-right corner to resize. The gameplay uses a horizontal center crop beneath it.</p>
+    <div class="facecam-timebar"><label class="f">Frame at (seconds)<input type="number" id="source-frame-at" min="0" step="1" value="60"></label>
+      <button type="button" class="btn" id="source-frame-load">Load video frame</button></div>
+    <div class="webcam-preview picking" id="source-facecam-preview"><span class="webcam-placeholder">Loading a real video frame…</span><span id="webcam-box"></span></div>
+    <p id="source-facecam-feedback" class="help">Select a frame, then drag a rectangle around the facecam.</p>
+    <div class="dlg-foot"><button type="button" class="btn" id="source-facecam-clear">No facecam</button><button type="button" class="btn" id="source-facecam-close">Cancel</button><button type="button" class="btn primary" id="source-facecam-save" disabled>Use this facecam</button></div></div>`;
+  dlg.showModal();
+  const panel=$("#source-facecam-preview"),box=$("#webcam-box"),feedback=$("#source-facecam-feedback");
+  const loadBtn=$("#source-frame-load"),saveBtn=$("#source-facecam-save");
+  let coords=link.facecamRect ? link.facecamRect.split(",").map(Number) : null;
+  let ready=false,drag=null,controller=null,frameUrl=null;
+  const releaseFrame=()=>{if(frameUrl){URL.revokeObjectURL(frameUrl);frameUrl=null;}};
+  const clamp=(n,min=0,max=1)=>Math.max(min,Math.min(max,n));
+  const paint=()=>{
+    if(!coords){box.style.display="none";saveBtn.disabled=true;return;}
+    const [x,y,w,h]=coords;
+    box.style.cssText=`display:block;left:${x*100}%;top:${y*100}%;width:${w*100}%;height:${h*100}%;`;
+    saveBtn.disabled=!ready;
+  };
+  const load=async()=>{
+    controller?.abort();releaseFrame();controller=new AbortController();
+    const signal=controller.signal;
+    ready=false;drag=null;saveBtn.disabled=true;loadBtn.disabled=true;
+    panel.replaceChildren(Object.assign(document.createElement("span"),{className:"webcam-placeholder",textContent:"Loading a real video frame…"}),box);
+    const at=Number($("#source-frame-at").value);
+    if(!Number.isFinite(at)||at<0||at>(link.info?.duration||43200)){
+      feedback.textContent="Enter a time inside the video.";loadBtn.disabled=false;return;
+    }
+    try{
+      const res=await fetch("/api/facecam-frame?url="+encodeURIComponent(link.url)+"&at="+at,{signal,credentials:"same-origin"});
+      if(!res.ok){let reason="Frame not available";try{reason=(await res.json()).detail||reason}catch{}throw Error(reason)}
+      const blob=await res.blob();
+      if(!blob.type.startsWith("image/"))throw Error("Preview was not an image.");
+      frameUrl=URL.createObjectURL(blob);
+      const img=document.createElement("img");
+      img.alt="A frame from this video";
+      img.onload=()=>{if(!signal.aborted){ready=true;paint()}};
+      img.onerror=()=>{ready=false;saveBtn.disabled=true;feedback.textContent="Could not display frame";};
+      panel.replaceChildren(img,box);
+      img.src=frameUrl;
+      feedback.textContent="Drag a box over the webcam. Move/resize it, then press Use this facecam.";
+    }catch(e){
+      if(e.name!=="AbortError"){
+        panel.replaceChildren(Object.assign(document.createElement("span"),{className:"webcam-placeholder",textContent:"Could not load this video frame. Try another time, or use the facecam review after highlights are found."}),box);
+        feedback.textContent=e.message;
+      }
+    }finally{if(!signal.aborted)loadBtn.disabled=false}
+  };
+  const pt=e=>{
+    const r=panel.getBoundingClientRect();
+    return [clamp((e.clientX-r.left)/r.width),clamp((e.clientY-r.top)/r.height)];
+  };
+  panel.onpointerdown=e=>{
+    if(!ready||e.button!==0)return;
+    const [x,y]=pt(e);let mode="draw",initial=coords?.slice();
+    if(initial){
+      const [a,b,w,h]=initial,r=panel.getBoundingClientRect();
+      if(Math.abs(x-a-w)*r.width<22&&Math.abs(y-b-h)*r.height<22)mode="resize";
+      else if(x>=a&&x<=a+w&&y>=b&&y<=b+h)mode="move";
+    }
+    drag={mode,origin:[x,y],initial};
+    if(mode==="draw")coords=[x,y,.08,.08];
+    panel.setPointerCapture(e.pointerId);paint();e.preventDefault();
+  };
+  panel.onpointermove=e=>{
+    if(!drag)return;
+    const [x,y]=pt(e),[ox,oy]=drag.origin;
+    if(drag.mode==="draw"){
+      const a=Math.min(x,ox),b=Math.min(y,oy);
+      coords=[a,b,Math.min(1-a,Math.max(.08,Math.abs(x-ox))),Math.min(1-b,Math.max(.08,Math.abs(y-oy)))];
+    }else if(drag.mode==="move"){
+      const [a,b,w,h]=drag.initial;
+      coords=[clamp(a+x-ox,0,1-w),clamp(b+y-oy,0,1-h),w,h];
+    }else{
+      const [a,b]=drag.initial;coords=[a,b,clamp(x-a,.08,1-a),clamp(y-b,.08,1-b)];
+    }
+    paint();
+  };
+  panel.onpointerup=()=>{
+    if(!drag)return;drag=null;
+    if(coords)coords=coords.map(n=>Math.round(n*10000)/10000);
+    paint();
+  };
+  panel.onpointercancel=()=>{drag=null};
+  $("#source-frame-load").onclick=load;
+  $("#source-facecam-close").onclick=()=>{controller?.abort();dlg.close()};
+  $("#source-facecam-clear").onclick=()=>{
+    link.facecamRect="";link.forceCrop=true;coords=null;dlg.close();drawAtt();toast("Facecam skipped for this video.","ok");
+  };
+  $("#source-facecam-save").onclick=()=>{
+    if(!ready||!coords)return;
+    link.facecamRect=coords.map(n=>n.toFixed(4)).join(",");link.forceCrop=false;
+    dlg.close();drawAtt();toast("Facecam selected. Make clips to apply it.","ok");
+  };
+  dlg.addEventListener("close",()=>{controller?.abort();releaseFrame();},{once:true});
+  load();
+}
+document.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-facecam-link]");
+  if(btn){e.preventDefault();openLinkFacecamPicker(btn.dataset.facecamLink)}
+});
+
 let currentFacecamCoords=null;
 function openFacecamReview(jid,cid) {
   const clip=jobOf(jid)?.clips.find(c=>c.id===cid);
@@ -2173,7 +2364,8 @@ function clipHtml(j, c) {
     <div class="clip-body">
       <div class="hook">${esc(c.hook || "Untitled clip")}</div>
       <div class="ttl">${esc(c.title)}</div>
-
+      ${c.custom_campaign_name ? `<div class="lc-c-tags"><span class="lc-c-tag" title="Custom campaign">${ic("folder")}${esc(c.custom_campaign_name)}</span></div>` : ""}
+      ${c.reason ? `<p class="lc-why" title="Why this moment was selected">${ic("bulb")}${esc(c.reason)}</p>` : ""}
       ${postPills(c) ? `<div class="row" style="gap:4px">${postPills(c)}</div>` : ""}
       ${c.visual_score != null ? `<div class="lc-visual-info" title="Deep mode motion score, not game recognition">Visual activity ${Math.round(Number(c.visual_score))}/100 · ${Number(c.visual_cuts)||0} scene cuts</div>` : ""}
       ${ratingControls(j,c)}
@@ -2296,6 +2488,12 @@ function drawJobs() {
   const root = $("#jobs"); if (!root) return;
   const cid = creatorId();
   let list = cid ? S.jobs.filter(j => j.creator === cid) : S.jobs;
+  const campaignBar = $("#campaign-filter");
+  if (campaignBar) {
+    const selected = (S.campaigns || []).find(x => x.id === S.campaignFilter);
+    put(campaignBar, S.campaignFilter ? `<div class="lc-c-filter">${ic("folder")}Showing campaign: <b>${esc(selected?.name || "Archived campaign")}</b><span class="grow"></span><button class="btn sm" data-act="clearcampaignfilter">Show all videos</button></div>` : "");
+  }
+  if (!cid && S.campaignFilter) list = list.filter(j => j.options?.custom_campaign_id === S.campaignFilter);
   const liveBox = $("#live");
   if (liveBox) { const lj = list.find(j => j.status === "live");
     if (!liveBox.querySelector(".pick.open")) put(liveBox, lj ? liveHtml(lj) : "");  // don't redraw under an open menu
@@ -2342,7 +2540,7 @@ async function saveChannels(chs, main) {
 }
 function drawCreatorForm() {
   const c = creator(), box = $("#cform"); if (!c || !box) return;
-  const A = S.accounts;
+  const A = safeList(S.accounts);
   box.innerHTML = `<div class="card"><h2>Their stream</h2><p class="help">Where to record from, and whether to start by itself.</p>
       <div class="chans">${channelRows(c)}</div>
       <div class="fields" style="margin-top:14px"><label class="sw span"><input type="checkbox" data-k="auto_watch" ${c.auto_watch ? "checked" : ""}><span>Record automatically when they go live<small>Checks straight away, then every two minutes.</small></span></label></div></div>
@@ -2364,10 +2562,13 @@ function drawCreatorForm() {
     <div class="card"><h2>Clips</h2><p class="help">How this creator's clips look.</p>
       <div class="fields"><label class="f">Caption style<select data-k="style">${opts(S.status.styles, c.style)}</select></label>
         <label class="f">Layout<select data-k="layout">${opts(S.status.layouts, c.layout)}</select></label>
+        <label class="f span">Big text on every clip (optional)<input data-k="overlay_hook_text" maxlength="60" value="${esc(c.overlay_hook_text || "")}" placeholder="Leave blank to let AI write a unique hook"><small class="sub">An original creator-wide headline. This does not change the existing Hook text COLOR. Protected campaign rules still take priority.</small></label>
+        <label class="f span">Description for every clip (optional)<textarea data-k="description_text" rows="3" maxlength="2000" placeholder="Leave blank for AI-generated descriptions">${esc(c.description_text || "")}</textarea><small class="sub">Preserves your wording, mentions, links and hashtags for ordinary gaming/IRL clips. Leave blank for automatic metadata.</small></label>
+        <label class="sw span"><input type="checkbox" data-k="watch_more_enabled" ${c.watch_more_enabled ? "checked" : ""}><span>End shoutout: Watch more on Creator Platform<small>Default for this creator's new clips and automatic livestream clips. Uses the saved creator name and actual source domain; only ordinary Gaming / IRL clips.</small></span></label>
         <label class="f">Default webcam corner<select data-k="facecam_position">${opts({auto:"Auto detect",top_left:"Top left",top_right:"Top right",bottom_left:"Bottom left",bottom_right:"Bottom right"},c.facecam_position || "auto")}</select></label>
         <label class="f">Default webcam size<select data-k="facecam_size">${opts({small:"Small",medium:"Medium",large:"Large"},c.facecam_size || "medium")}</select></label>
         <label class="f">Exact webcam region (optional x,y,w,h)<input data-k="facecam_rect" placeholder="0.02,0.03,0.36,0.36" value="${esc(c.facecam_rect || "")}"></label>
-        <label class="f">Automatic live clip quality<select data-k="clip_quality">${opts({360:"360p (fast)",720:"720p",1080:"1080p (sharp)",2160:"Max / 4K (slow)"}, c.clip_quality || 1080)}</select></label>
+        <label class="f">Automatic live clip quality<select data-k="clip_quality">${opts({0:"Auto — source quality (up to 4K)",360:"360p (fast)",720:"720p",1080:"1080p (sharp)",2160:"4K only (slow)"}, c.clip_quality ?? 1080)}</select><small class="sub">Auto records at the highest available stream resolution (maximum 4K) and exports matched quality. Fixed 4K refuses lower-res sources.</small></label>
         <label class="f">Shortest clip (seconds)<input data-k="min_len" type="number" value="${c.min_len}"></label>
         <label class="f">Longest clip (seconds)<input data-k="max_len" type="number" value="${c.max_len}"></label>
         <label class="f">Clips per video<input data-k="max_clips" type="number" value="${c.max_clips}"></label>
@@ -2376,7 +2577,7 @@ function drawCreatorForm() {
       <label class="f" style="max-width:540px">YouTube Shorts upload channel<select data-k="youtube_account">${opts({"":"Choose an account / use legacy choices", ...Object.fromEntries(A.filter(a=>a.platform==="youtube").map(a=>[a.id,a.name]))},c.youtube_account||"")}</select></label>
       <p class="help">If set, all auto-posted YouTube Shorts for this creator go ONLY to that authorized channel. Google sign-in is required separately for each channel.</p></div>
     <div class="card"><h2>Posting</h2><p class="help">${A.length ? "Select only accounts you own or have publishing permission for. Each creator can use a separate YouTube channel above." : "No accounts are connected yet. Connect one in Settings, then come back."}</p>
-      ${A.length ? `<div class="row" style="margin-bottom:16px">${A.map(a => `<label class="ck"><input type="checkbox" data-acc value="${esc(a.id)}" ${c.accounts.includes(a.id) ? "checked" : ""}>${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>` : `<button class="btn" data-act="go" data-v="settings" style="margin-bottom:16px">${ic("cog")}Open Settings</button>`}
+      ${safeList(A).length ? `<div class="row" style="margin-bottom:16px">${safeList(A).map(a => `<label class="ck"><input type="checkbox" data-acc value="${esc(a.id)}" ${c.accounts.includes(a.id) ? "checked" : ""}>${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>` : `<button class="btn" data-act="go" data-v="settings" style="margin-bottom:16px">${ic("cog")}Open Settings</button>`}
       <div class="fields"><label class="sw span"><input type="checkbox" data-k="post_rights_confirmed" ${c.post_rights_confirmed ? "checked" : ""}><span>I have permission to publish these stream clips<small>Required for automatic publishing. The source channel and upload channel can be different; rights are still your responsibility.</small></span></label><label class="sw span"><input type="checkbox" data-k="autopost" ${c.autopost ? "checked" : ""}><span>Post new clips automatically<small>Only permitted clips above the score go to this creator’s selected posting channel automatically. Campaign clips still require manual review.</small></span></label>
         <label class="f">Only auto-post clips scoring at least<input data-k="post_min_score" type="number" min="0" max="100" value="${c.post_min_score}"></label>
         <label class="f">Minutes between posts on one account<input data-k="post_gap_min" type="number" value="${c.post_gap_min}"></label>
@@ -2384,14 +2585,40 @@ function drawCreatorForm() {
         <label class="f">Who can see posts (YouTube, TikTok)<select data-k="privacy">${opts({public:"Public", unlisted:"Unlisted", private:"Private"}, c.privacy)}</select></label>
         <label class="f">Campaign pay per 1,000 views ($)<input data-k="rate_per_1k" type="number" step="0.1" min="0" value="${c.rate_per_1k}"></label>
         <label class="f span">Line added to every post (credit, campaign tag)<input data-k="post_footer" value="${esc(c.post_footer)}" placeholder="Clipped from @streamer"></label></div></div>
+    <div class="card"><div class="card-head"><div><h2>Why isn't auto-post working?</h2>
+      <p class="help">Checks this creator's configuration and recent finished clips. Does not publish or re-render anything.</p></div>
+      <button type="button" class="btn sm" data-act="refreshpostdiag">Refresh</button></div>
+      <div id="autopost-diag" class="apdiag">Checking posting status…</div></div>
     <div class="card danger-card"><h2>Delete this creator</h2><p class="help">Removes ${esc(c.name)}, their settings and every video and clip filed under them. This cannot be undone.</p>
       <button class="btn danger" data-act="delcreator">${ic("trash")}Delete creator</button></div>
     <div class="savebar" id="savebar"><span>${ic("warn")}You have unsaved changes</span><button class="btn ghost" data-act="cdiscard">Discard</button><button class="btn primary" data-act="csave">${ic("check")}Save changes</button></div>`;
+  loadPostDiagnostics(c.id).catch(()=>{});
+}
+async function loadPostDiagnostics(cid) {
+  const target = $("#autopost-diag");
+  if (!target || !cid) return;
+  target.textContent = "Checking posting status…";
+  try {
+    const d = await api("/api/creators/" + encodeURIComponent(cid) + "/autopost-diagnostics");
+    if (!target.isConnected || creatorId() !== cid) return;
+    const notices = safeList(d?.notices);
+    const recent = safeList(d?.recent);
+    target.innerHTML = `<div class="apdiag-status"><strong>${d.enabled ? "Auto-post ON" : "Auto-post OFF"}</strong>
+        <span>${d.connected_destinations} connected destination(s)</span>
+        <span>Min clip score: ${Number(d.min_score)}</span>
+        <span>Global queue: ${d.paused ? "Paused" : "Running"}</span></div>
+      ${notices.length ? `<div class="apdiag-notices">${notices.map(x=>`<p>${ic("warn")}${esc(x)}</p>`).join("")}</div>` : `<p class="apdiag-ok">${ic("check")}Settings look eligible. Each newly finished clip still needs to meet the score; uploading can fail if a platform rejects credentials, permissions or video.</p>`}
+      <h4>Recent completed clips</h4>
+      ${recent.length ? `<div class="apdiag-recent">${recent.map(x=>`<div><b>${esc(x.title)}</b><small>Score ${Number(x.score) || 0}</small><p>${esc(x.reason)}</p></div>`).join("")}</div>` : '<p class="help">No finished clips under this creator yet. New auto-posting applies to completed clips from this workspace.</p>'}
+      <p class="help">Clips made with No creator, or before enabling auto-post, are not retroactively published. For failed posts, check Home → Post queue and press Retry after fixing the destination.</p>`;
+  } catch(err) {
+    if (target.isConnected) target.textContent = "Could not read posting diagnostics: " + err.message;
+  }
 }
 const creatorForm = () => { const d = {}; $$("#cform [data-k]").forEach(i => { if (i.type === "radio") { if (i.checked) d[i.dataset.k] = i.value; } else d[i.dataset.k] = i.type === "checkbox" ? i.checked : i.value; }); d.accounts = $$("#cform [data-acc]:checked").map(i => i.value); return d; };
 const dirty = on => $("#savebar")?.classList.toggle("on", on);
 async function saveCreator(quiet) {
-  try { await send(`/api/creators/${creatorId()}`, creatorForm(), "PUT"); dirty(false); if (!quiet) toast("Saved", "ok"); await tick(); return true; }
+  try { await send(`/api/creators/${creatorId()}`, creatorForm(), "PUT"); dirty(false); if (!quiet) toast("Saved", "ok"); await tick(); if ($("#autopost-diag")) loadPostDiagnostics(creatorId()).catch(()=>{}); return true; }
   catch (e) { toast(e.message, "bad"); return false; }
 }
 function drawLog() {
@@ -2430,7 +2657,7 @@ function nextSteps(o) {
 }
 function drawOverview() {
   const o = S.overview, box = $("#ov"); if (!o || !box) return;
-  const sum = k => o.creators.reduce((a, r) => a + r[k], 0);
+  const sum = k => safeList(o.creators).reduce((a, r) => a + (r[k] || 0), 0);
   const d14 = k => (o.daily || []).reduce((a, d) => a + d[k], 0);
   const state = r => r.state === "recording" ? `<span class="pill live"><span class="dot"></span>Recording</span>` : r.state === "waiting" ? `<span class="pill warn">Waiting for live</span>` : `<span class="pill">Idle</span>`;
   const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}</span>`;
@@ -2451,13 +2678,13 @@ function drawOverview() {
     ${steps.length ? `<div class="card"><div class="card-head"><div><h2>Next steps</h2><p class="sub">Finish setting up Legend Clipper</p></div></div>
       <div class="steps across">${steps.map((x, i) => `<button class="step" data-act="step" data-to="${esc(x[2])}"><span class="n">${i + 1}</span><span><b>${esc(x[0])}</b><span class="d">${esc(x[1])}</span></span>${ic("arrowr")}</button>`).join("")}</div></div>` : ""}
     <div class="card"><div class="card-head"><div><h2>Creators</h2><p class="sub">Each creator's status and results</p></div></div>
-      ${o.creators.length ? `<div class="scroll"><table><tr><th>Creator</th><th>Status</th><th>Auto-post</th><th class="num">Clips today</th><th class="num">Posted today</th><th class="num">Waiting</th><th class="num">Failed</th><th class="num">Views</th><th class="num">Est. $</th></tr>
-      ${o.creators.map(r => `<tr><td><a class="lnk" href="#" data-act="go" data-v="c:${esc(r.id)}">${esc(r.name)}</a></td><td>${state(r)}</td><td>${r.autopost ? `<span class="pill ok">On</span>` : `<span class="pill">Off</span>`}</td><td class="num">${r.clips_today} <span class="sub">/ ${r.clips_total}</span></td><td class="num">${r.posted_today} <span class="sub">/ ${r.posted_total}</span></td><td class="num">${r.queued}</td><td class="num">${r.failed}</td><td class="num">${r.views.toLocaleString()}</td><td class="num">${r.earnings.toFixed(2)}</td></tr>`).join("")}</table></div>`
+      ${safeList(o.creators).length ? `<div class="scroll"><table><tr><th>Creator</th><th>Status</th><th>Auto-post</th><th class="num">Clips today</th><th class="num">Posted today</th><th class="num">Waiting</th><th class="num">Failed</th><th class="num">Views</th><th class="num">Est. $</th></tr>
+      ${safeList(o.creators).map(r => `<tr><td><a class="lnk" href="#" data-act="go" data-v="c:${esc(r.id)}">${esc(r.name)}</a></td><td>${state(r)}</td><td>${r.autopost ? `<span class="pill ok">On</span>` : `<span class="pill">Off</span>`}</td><td class="num">${r.clips_today} <span class="sub">/ ${r.clips_total}</span></td><td class="num">${r.posted_today} <span class="sub">/ ${r.posted_total}</span></td><td class="num">${r.queued}</td><td class="num">${r.failed}</td><td class="num">${r.views.toLocaleString()}</td><td class="num">${r.earnings.toFixed(2)}</td></tr>`).join("")}</table></div>`
       : `<div class="empty"><img src="/brand/legend-clipper-icon.svg?v=3" alt=""><b>No creators yet</b>Add one to give each streamer their own workspace.</div>`}</div>
     <div class="card"><div class="card-head"><div><h2>Post queue</h2><p class="sub">${o.paused ? "Paused. Recording and clipping carry on; nothing is posted." : "Queued clips go out at their scheduled time."}</p></div>
         <button class="btn ${o.paused ? "primary" : ""}" data-act="pause">${ic(o.paused ? "play" : "pause")}${o.paused ? "Resume posting" : "Pause all posting"}</button></div>
-      ${o.posts.length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
-      ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "–"}</td>
+      ${safeList(o.posts).length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
+      ${safeList(o.posts).map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "–"}</td>
         <td class="c-act" style="text-align:right">${p.status === "scheduled" ? `<button class="btn sm" data-act="pcancel" data-id="${p.id}">Cancel</button>` : p.status === "failed" ? `<button class="btn sm" data-act="pretry" data-id="${p.id}">Retry</button>` : ""}</td></tr>`).join("")}</table></div>`
       : `<p class="help">Nothing queued or posted yet.</p>`}</div>`);
 }
@@ -2503,22 +2730,24 @@ function drawUsage() {
     </div>
     <div class="card"><div class="card-head"><div><h2>Recent AI activity</h2><p class="sub">The latest ${(k.recent || []).length} AI calls</p></div></div>
       ${(k.recent || []).length ? `<div class="scroll"><table><tr><th>When</th><th>What</th><th>Creator</th><th>Video</th><th class="num">Tokens</th></tr>
-      ${k.recent.map(u => `<tr><td class="sub">${when(u.t)}</td><td>${esc(u.purpose)}</td><td>${esc(u.creator_name || "None")}</td><td class="sub">${esc(u.where || "")}</td><td class="num">${(u.tokens || 0).toLocaleString()}</td></tr>`).join("")}</table></div>`
+      ${safeList(k.recent).map(u => `<tr><td class="sub">${when(u.t)}</td><td>${esc(u.purpose)}</td><td>${esc(u.creator_name || "None")}</td><td class="sub">${esc(u.where || "")}</td><td class="num">${(u.tokens || 0).toLocaleString()}</td></tr>`).join("")}</table></div>`
       : `<p class="help">No AI calls yet.</p>`}</div>`;
 }
 
 /* ============================================================ settings */
 // With sign-in off there is no profile or password to manage. The AI section is for whoever runs the server.
 const setTabs = () => [
-  ...(S.status.user?.is_admin ? [["ai", "AI", "bolt", "Your AI service, model and key"]] : []),
+  ...(S.status.user?.is_admin ? [["ai", "AI", "bolt", "Save key, choose model and test"]] : []),
   ...(S.status.accounts === false ? [] : [["profile", "Profile", "user", "Your name, email and how you sign in"],
                                           ["security", "Security", "lock", "Password and signing out"]]),
   ["apps", "Connected apps", "plug", "Where your clips get posted"],
   ...(S.status.user?.is_admin ? [["storage", "Storage", "folder", "Where videos and clips are kept"]] : [])];
 function aiHints() {
   const k = S.ai, sel = $("#ai_provider"); if (!k || !sel) return;
-  const pv = k.providers.find(x => x.id === sel.value) || k.providers[0], same = pv.id === k.provider;
-  $("#ai_key").placeholder = same && k.has_key ? `Saved${k.key_hint ? ", ends in " + k.key_hint : ""}. Paste a new key to replace it` : pv.needs_key ? "Paste your key" : "Not needed";
+  const pv = safeList(k.providers).find(x => x.id === sel.value) || safeList(k.providers)[0];
+  if (!pv) return;
+  const same = pv.id === k.provider;
+  $("#ai_key").placeholder = same && k.has_key ? `Key already saved${k.key_hint ? " (ends " + k.key_hint + ")" : ""}. Leave blank to keep it` : pv.needs_key ? "Paste a key to save" : "Not needed";
   $("#ai_keyhint").innerHTML = pv.key_url ? `${pv.needs_key ? "Get a key at" : "Set it up at"} <a href="${esc(pv.key_url)}" target="_blank" rel="noopener">${esc(pv.key_url.replace("https://", ""))}</a>. The key stays on this server and is never shown again.` : "The key stays on this server and is never shown again.";
   $("#ai_model").placeholder = pv.example ? "For example " + pv.example : "The model id, exactly as the service names it";
   $("#ai_base").placeholder = pv.address || "http://127.0.0.1:1234/v1";
@@ -2535,15 +2764,16 @@ async function drawSettings() {
     if (tab === "ai") {
       const k = S.ai = await api("/api/ai");
       body.innerHTML = `<section class="set-sec"><h2>AI</h2><p class="help">Legend Clipper uses an AI model to pick the moments worth clipping and to write hooks, titles and captions. Use your own key from any of these services. You pay that service directly. Without a key, clips are picked by loudness.</p>
-          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Ready</span><span class="sub">${esc(k.label)} · ${esc(k.models[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
+          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Configured</span><span class="sub">${esc(k.label)} · ${esc(safeList(k.models)[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
+          <p class="help" id="ai_save_state" role="status" aria-live="polite" style="margin:12px 0">${k.saved_here ? `Settings saved on this server (data/ai.json). ${k.has_key ? "API key stored" + (k.key_hint ? ", ending " + esc(k.key_hint) : "") + "." : "No API key stored."}` : k.has_key ? "Key is coming from the server environment (.env); use Save settings to keep the selected model/key in this server\u2019s data folder." : "No key saved yet. Save settings first; test the API connection separately."}</p>
           <div class="ai-form">
-            <label class="f">AI service<select id="ai_provider">${k.providers.map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>
+            <label class="f">AI service<select id="ai_provider">${safeList(k.providers).map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>
             <label class="f">Key<input id="ai_key" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="ai_keyhint"></span></label>
             <label class="f" id="ai_basewrap">Address<input id="ai_base" value="${esc(k.base_url || "")}" spellcheck="false"><span class="hint">Where the service answers. Only needed for a custom service.</span></label>
-            <label class="f">Model<span class="with"><input id="ai_model" list="ai_models" value="${esc(k.models.join(", "))}" spellcheck="false"><button class="btn" type="button" data-act="aimodels">Find models</button></span>
+            <label class="f">Model<span class="with"><input id="ai_model" list="ai_models" value="${esc(safeList(k.models).join(", "))}" spellcheck="false"><button class="btn" type="button" data-act="aimodels">Find models</button></span>
               <datalist id="ai_models"></datalist><span class="hint">A fast, inexpensive model is the right choice. Add a second one after a comma to fall back on.</span></label>
           </div>
-          <div class="row" style="margin-top:20px"><button class="btn primary" data-act="aisave">Save and test</button>${k.ready ? `<button class="btn" data-act="aitest">Test again</button>` : ""}</div></section>`;
+          <div class="row" style="margin-top:20px"><button class="btn primary" type="button" data-act="aisave">Save settings</button><button class="btn" type="button" data-act="aitest" ${k.ready ? "" : "disabled"}>Test AI connection</button></div><p class="help">Saving only writes to this server. A wrong or unavailable Gemini key/model can still be saved; Test AI connection checks whether Gemini actually responds.</p></section>`;
       aiHints();
     }
     if (tab === "profile") {
@@ -2585,7 +2815,7 @@ async function drawSettings() {
             : `<div class="row" style="margin-top:16px"><button class="btn" data-act="storchange">Change folder</button></div>`}</section>`;
     }
     if (tab === "apps") {
-      const conn = S.accounts || [];
+      const conn = safeList(S.accounts);
       const app = (key, name, logo, bg, desc, action, list) => `<div class="appcard"><span class="applogo" style="background:${bg}">${logo}</span>
           <div class="apptx"><b>${name}</b><span>${desc}</span>${list}</div><div class="appact">${action}</div></div>`;
       const mine = plat => conn.filter(a => (a.platform || a.label || "").toLowerCase().includes(plat));
@@ -2658,13 +2888,16 @@ function drawClipDlg(full) {
           <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
         <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" value="${c.start}"></label>
           <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" value="${c.end}"></label></div>
-        <h3>Post text</h3>
+        <div class="row" style="justify-content:space-between;align-items:center"><h3>Post text</h3>
+          <button class="btn sm" data-act="writetext" ${c.status === "done" && !c.campaign_review_required && ["gaming","irl"].includes(j.options?.clip_mode || "gaming") ? "" : "disabled"}>Write again with AI</button></div>
         <label class="f">Title<input data-f="title" value="${esc(c.title)}"></label>
-        <label class="f">Description<textarea data-f="description" rows="2">${esc(c.description)}</textarea></label>
-        <button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button>
+        <label class="f">Description<textarea data-f="description" rows="3" maxlength="2000">${esc(c.description || "")}</textarea></label>
+        <label class="f">Hashtags<input data-f="hashtags" value="${esc((c.hashtags || []).join(" "))}" placeholder="minecraft funny clutch"></label>
+        <div class="row"><button class="btn primary" data-act="saveposttext" ${c.status === "done" && !c.campaign_review_required && ["gaming","irl"].includes(j.options?.clip_mode || "gaming") ? "" : "disabled"}>${ic("check")}Save post text only</button><button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button></div>
+        <p class="help">Save post text edits title, description and hashtags without rendering again. Big text, video layout or timing edits still require re-make. Protected campaign copy must be reviewed via re-make.</p>
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
-        ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
+        ${safeList(S.accounts).length ? `<div class="row">${safeList(S.accounts).map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
           <div class="row"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>`
           : `<p class="help">No accounts connected yet. Connect one in Settings.</p>`}
         <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line)">
@@ -2678,9 +2911,26 @@ function drawClipDlg(full) {
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
 
+function clipPostText() {
+  const v = k => $("#clipdlg [data-f='"+k+"']")?.value || "";
+  return {title:v("title"), description:v("description"), hashtags:v("hashtags").split(/\s+/).map(h=>h.replace(/^#+/,"")).filter(Boolean)};
+}
+
+// Compare actual publishing copy, not line-ending or hashtag-prefix formatting.
+function changedPostFields(draft, clip) {
+  const norm = v => String(v ?? "").replace(/\r\n?/g, "\n").trim();
+  const tags = v => (Array.isArray(v) ? v : []).map(h => norm(h).replace(/^#+/, "")).filter(Boolean).join(" ");
+  return [
+    ["title", norm(draft.title), norm(clip.title)],
+    ["description", norm(draft.description), norm(clip.description)],
+    ["hashtags", tags(draft.hashtags), tags(clip.hashtags)]
+  ].filter(([, actual, saved]) => actual !== saved).map(([field]) => field);
+}
+
 /* ============================================================ render + polling */
 function render() {
   drawShell(); drawJobs(); drawStream(); drawSelBar();
+  if (S.view === "campaigns") drawCampaigns();
   if (S.view === "overview") drawOverview();
   if ($("#clog")) drawLog();
   if (D.jid) drawClipDlg(false);
@@ -2697,8 +2947,8 @@ async function tick() {
     }
     const {jobs, creators, accounts} = got;
     // a server from before multi-channel support sends only `channel`: show it as that platform's channel
-    creators.forEach(c => { if (!c.channels) { const u = c.channel || "", k = /youtu/i.test(u) ? "youtube" : /twitch/i.test(u) ? "twitch" : /kick/i.test(u) ? "kick" : ""; c.channels = k ? {[k]: u} : {}; } });
-    S.jobs = jobs; S.creators = creators; S.accounts = accounts;
+    safeList(creators).forEach(c => { if (!c.channels) { const u = c.channel || "", k = /youtu/i.test(u) ? "youtube" : /twitch/i.test(u) ? "twitch" : /kick/i.test(u) ? "kick" : ""; c.channels = k ? {[k]: u} : {}; } });
+    S.jobs = safeList(jobs); S.creators = safeList(creators); S.accounts = safeList(accounts);
     if (got.ai) S.status.ai = got.ai;
     if (got.unread != null) S.status.unread = got.unread;
     if (S.view === "overview") { S.overview = await api("/api/overview"); S.ovAt = Date.now(); }
@@ -2727,6 +2977,16 @@ function loop() {
 }
 
 /* ============================================================ actions */
+// Original lightweight clip-length shortcuts (no changes to backend or saved recordings).
+document.addEventListener("click", e => {
+  const button = e.target.closest("[data-duration-preset]"); if (!button) return;
+  e.preventDefault();
+  const range = {auto:[15,60],short:[15,30],medium:[30,60],long:[60,120]}[button.dataset.durationPreset];
+  if (!range || !$("#o_min") || !$("#o_maxlen")) return;
+  $("#o_min").value = range[0];
+  $("#o_maxlen").value = range[1];
+  $("#legend-clip-count-panel [data-duration-preset]").forEach(b => b.setAttribute("aria-pressed", String(b === button)));
+});
 document.addEventListener("submit", e => { if (e.target.id === "addform") { e.preventDefault();
   makeClips().catch(err => { console.error('Legend Clipper: start clips failed', err); toast(err?.message || 'Unable to start clipping. Check Options and try again.', 'bad'); });
 } });
@@ -2762,26 +3022,52 @@ document.addEventListener("click", async e => {
   const a = b.dataset.act, d = b.dataset;
   if (b.tagName === "A") e.preventDefault();
   try {
-    if (a === "go") { closePops(); return go(d.v, d.tab); }
+    if (a === "go") { closePops(); if (d.v === "library") S.campaignFilter = ""; return go(d.v, d.tab); }
+    if (a === "clearcampaignfilter") { S.campaignFilter = ""; return render(); }
     if (a === "aimodels") {
       b.disabled = true;
       try {
         const r = await send("/api/ai/models", {provider: $("#ai_provider").value, base_url: $("#ai_base").value, key: $("#ai_key").value});
-        $("#ai_models").innerHTML = r.models.map(m => `<option value="${esc(m)}">`).join("");
-        toast(r.models.length ? `${r.models.length} models found. Click the model box to pick one.` : "The service listed no models. Type the model yourself.", r.models.length ? "ok" : "");
-        if (r.models.length) $("#ai_model").focus();
+        const models = safeList(r?.models);
+        $("#ai_models").innerHTML = models.map(m => `<option value="${esc(m)}">`).join("");
+        toast(models.length ? `${models.length} models found. Click the model box to pick one.` : "The service listed no models. Type the model yourself.", models.length ? "ok" : "");
+        if (models.length) $("#ai_model").focus();
       } finally { b.disabled = false; }
       return;
     }
-    if (a === "aisave" || a === "aitest") {
+    if (a === "aisave") {
       b.disabled = true;
       try {
-        if (a === "aisave") await send("/api/ai", {provider: $("#ai_provider").value, models: $("#ai_model").value, base_url: $("#ai_base").value, key: $("#ai_key").value}, "PUT");
-        let ok = null, why = "";
-        try { ok = await send("/api/ai/test"); } catch (err) { why = err.message; }
-        S.status = await api("/api/status"); drawShell(); await drawSettings();
-        if (ok) toast(`Saved. ${ok.model} answered, so the AI is ready.`, "ok");
-        else toast(`Saved, but the test failed. ${why}`, "bad");
+        const chosenProvider = $("#ai_provider").value;
+        const chosenModels = $("#ai_model").value;
+        const suppliedKey = $("#ai_key").value;
+        const saved = await send("/api/ai", {provider:chosenProvider, models:chosenModels,
+          base_url:$("#ai_base").value, ...(suppliedKey.trim() ? {key:suppliedKey} : {})}, "PUT");
+        const verified = await api("/api/ai");
+        const desiredModels = chosenModels.split(",").map(x=>x.trim()).filter(Boolean);
+        if (!verified.saved_here || !verified.ready || verified.provider !== chosenProvider ||
+            desiredModels.join(",") !== verified.models.join(",") ||
+            (saved.has_key && !verified.has_key)) {
+          throw new Error("Could not verify that AI settings were saved on this server.");
+        }
+        S.ai = verified;
+        try { S.status = await api("/api/status"); drawShell(); } catch (_) { /* save was already verified */ }
+        await drawSettings();
+        toast("AI settings SAVED on this server. Use Test AI connection to check the model/key.", "ok");
+      } finally { b.disabled = false; }
+      return;
+    }
+    if (a === "aitest") {
+      b.disabled = true;
+      try {
+        const result = await send("/api/ai/test");
+        const line = $("#ai_save_state");
+        if (line) line.textContent = "Settings saved. AI connection verified: " + result.model + " answered successfully.";
+        toast("AI connected: " + result.model + " answered successfully.", "ok");
+      } catch (err) {
+        const line = $("#ai_save_state");
+        if (line) line.textContent = "Your saved settings are kept, but the AI connection test failed: " + err.message;
+        toast("AI test failed (settings were not deleted): " + err.message, "bad");
       } finally { b.disabled = false; }
       return;
     }
@@ -2979,8 +3265,18 @@ document.addEventListener("click", async e => {
     if (a === "appsetup") { S.setupOpen = d.p && S.setupOpen !== d.p ? d.p : ""; return drawSettings(); }
     if (a === "copytext") { await navigator.clipboard.writeText(d.t); return toast("Copied", "ok"); }
     if (a === "appsave") {
-      await send("/api/apps", {platform: d.p, client_id: $("#app_id").value, client_secret: $("#app_secret").value}, "PUT");
-      S.setupOpen = ""; S.status = await api("/api/status"); toast("Saved. People can connect now.", "ok"); return drawSettings();
+      const id = $("#app_id").value, secret = $("#app_secret").value;
+      const wasChanged = !!(id.trim() || secret.trim());
+      await send("/api/apps", {platform: d.p, client_id:id, client_secret:secret}, "PUT");
+      const verify = (await api("/api/apps"))[d.p];
+      if (!verify?.ready || (wasChanged && !verify.from_dashboard)) {
+        throw new Error("App keys could not be verified after saving. Check server data folder.");
+      }
+      S.setupOpen = "";
+      try { S.status = await api("/api/status"); } catch (_) { /* save was already verified */ }
+      await drawSettings();
+      toast(wasChanged ? "App keys saved on this server. Credentials verified." : "Existing app keys are already configured.", "ok");
+      return;
     }
     if (a === "bell") return openBell();
     if (a === "feedback") return openFeedback("bug");
@@ -2988,6 +3284,7 @@ document.addEventListener("click", async e => {
     if (a === "acctmenu") return openAcct();
     if (a === "bellread") { await markRead(); return openBell().then(openBell); }
     if (a === "ntgo") { closePops(); const l = d.link || ""; if (l.startsWith("/app")) { const [v, tab] = fromPath(l); return go(v, tab); } if (l.startsWith("/")) location.href = l; return; }
+    if (a === "refreshpostdiag") return loadPostDiagnostics(creatorId());
     if (a === "csave") return void await saveCreator();
     if (a === "cdiscard") { drawCreatorForm(); return toast("Changes discarded"); }
     if (a === "pause") { await send("/api/settings", {paused:!S.overview.paused}, "PUT"); return loadOverview(); }
@@ -3002,6 +3299,28 @@ document.addEventListener("click", async e => {
       if (!await ask("Disconnect this account?", "Posts still waiting for it will fail.", "Disconnect", true)) return;
       await api(`/api/accounts/${d.id}`, {method:"DELETE"}); await tick(); return drawSettings();
     }
+    if (a === "writetext") {
+      b.disabled = true; const oldLabel = b.textContent; b.textContent = "Writing…";
+      try {
+        const draft = await send(`/api/jobs/${D.jid}/clips/${D.cid}/write`, {});
+        const f = k => $("#clipdlg [data-f='"+k+"']");
+        if (f("title")) f("title").value = draft.title || "";
+        if (f("description")) f("description").value = draft.description || "";
+        if (f("hashtags")) f("hashtags").value = (draft.hashtags || []).join(" ");
+        toast("AI wrote a DRAFT. Review it and press Save post text only.", "ok");
+        return;
+      } finally { b.disabled = false; b.textContent = oldLabel; }
+    }
+    if (a === "saveposttext") {
+      b.disabled = true;
+      try {
+        const updated = await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, clipPostText(), "PUT");
+        const ix = S.jobs.findIndex(j => j.id === updated.id);
+        if (ix >= 0) S.jobs[ix] = updated;
+        toast("Post text saved without rerendering the video.", "ok");
+        return;
+      } finally { b.disabled = false; }
+    }
     if (a === "remake") {
       const body = {}; $$("#clipdlg [data-f]").forEach(i => body[i.dataset.f] = i.type === "number" ? Number(i.value) : i.value);
       await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body); toast("Re-making the clip…", "ok"); return tick();
@@ -3009,7 +3328,35 @@ document.addEventListener("click", async e => {
     if (a === "postnow" || a === "postqueue") {
       const accs = $$("#clipdlg [data-pacc]:checked").map(i => i.value);
       if (!accs.length) return toast("Tick at least one account first.", "bad");
-      if (a === "postnow" && !await ask("Post now?", `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
+      const job = jobOf(D.jid), clip = job?.clips.find(c => c.id === D.cid);
+      if (!clip || clip.status !== "done") throw new Error("This clip is not ready to post.");
+      const draft = clipPostText();
+      const modifiedFields = changedPostFields(draft, clip);
+      const changed = modifiedFields.length > 0;
+      const protectedCampaign = clip.campaign_review_required || !["gaming","irl"].includes(job.options?.clip_mode || "gaming");
+      if (changed && protectedCampaign) {
+        // Do not modify approved campaign text. Queue the original metadata only
+        // after the user explicitly agrees to discard unsaved editor changes.
+        const action = a === "postnow" ? "Post now" : "Add to queue";
+        const label = modifiedFields.join(", ");
+        const approved = await ask("Use original saved campaign text?",
+          `You changed ${label}, but this protected clip must keep its saved campaign copy. ${action} with the ORIGINAL title, description and hashtags instead? Your unsaved edits will NOT be posted.`,
+          a === "postnow" ? "Post original text" : "Queue original text");
+        if (!approved) return;
+        // Make the editor reflect exactly the saved copy being submitted.
+        const savedText = {title: clip.title || "", description: clip.description || "",
+          hashtags: (Array.isArray(clip.hashtags) ? clip.hashtags : []).join(" ")};
+        for (const [field, value] of Object.entries(savedText)) {
+          const input = $("#clipdlg [data-f='" + field + "']");
+          if (input) input.value = value;
+        }
+      } else if (a === "postnow" && !await ask("Post now?",
+        `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
+      if (changed && !protectedCampaign) {
+        const updated = await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, draft, "PUT");
+        const ix = S.jobs.findIndex(j => j.id === updated.id);
+        if (ix >= 0) S.jobs[ix] = updated;
+      }
       await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs, now:a === "postnow"});
       toast(a === "postnow" ? "Posting now" : "Added to the queue", "ok"); return tick();
     }
@@ -3030,6 +3377,7 @@ $("#main").addEventListener("scroll", () => $(".topbar").classList.toggle("stuck
   if (q.get("verified")) { history.replaceState(null, "", location.pathname); setTimeout(() => toast("Email confirmed. You're ready to clip.", "ok"), 300); }
   if (q.get("verify_error")) { history.replaceState(null, "", location.pathname); setTimeout(() => toast(q.get("verify_error"), "bad"), 300); }
   if (location.pathname.startsWith("/app/")) { const [v, tab] = fromPath(location.pathname); S.view = v; S.ctab = tab; }  // the address decides, before anything loads
+  try { await loadCampaigns(); } catch (err) { S.campaigns=[]; console.warn("Campaigns failed to load:", err.message); }
   await tick();
   { const [v, tab] = location.pathname.startsWith("/app/") ? fromPath(location.pathname) : ["overview", "clips"]; go(v, tab, true); remember(S.view, S.ctab, "replace"); }
   try {  // a link pasted on the home page before signing up

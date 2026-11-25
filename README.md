@@ -47,12 +47,12 @@ python -m studio.server
 The first start downloads the speech model by itself (about 480 MB, once).
 
 Open http://127.0.0.1:8765. There is no sign-in: it opens straight into the dashboard. Go to **Settings, AI**, choose
-your AI service, paste your key and press **Save and test** (see [Choose your AI](#choose-your-ai)).
+your AI service, paste your key and press **Save settings**, then **Test AI connection** (see [Choose your AI](#choose-your-ai)).
 
 ## Choose your AI
 
 PeakCut needs a chat model that can return JSON. The easy way is in the dashboard: **Settings, AI**. Pick the
-service, paste your key, press **Find models** to choose from the service's own list, then **Save and test**. The
+service, paste your key, press **Find models** to choose from the service's own list, then **Save settings** and separately **Test AI connection**. The
 key is kept in the data folder on your machine and is never shown again.
 
 If you prefer a file (or run a server), the same three things can go in `.env`. What is saved in the dashboard wins:
@@ -80,6 +80,54 @@ PEAKCUT_AI_KEY=your-key-here
 - You pay the AI service directly for what you use. The **AI usage** page in the app shows how many requests and
   tokens each video took.
 - Speech to text does not use the AI service. It runs on your own machine, so audio never leaves it.
+
+## Troubleshooting automatic posting
+
+Open **Creator → Setup → Why isn't auto-post working? → Refresh**. The diagnostic shows whether the creator has Auto-post on, approved publishing rights, connected posting destinations, and a global queue pause. It also lists recent completed clip scores and explains why each was skipped or what error the destination returned.
+
+For automatic posting, **select a creator workspace when starting a new clip job**, then enable **Creator → Setup → Posting → Post new clips automatically**, tick the destination account(s), tick the permission confirmation and choose a reasonable score threshold. Clips made under `No creator` do not have a destination. Auto-post runs only when **new clips finish**, not retroactively on old videos. Do not disable publisher permission safeguards; only upload footage you are authorized to publish.
+
+Use **Home → Post queue** for actual upload results. If a provider rejects the post (missing TikTok video.publish permission, Instagram professional account/media-fetch access, expired OAuth sign-in or an unreachable public HTTPS URL), its error appears there after retries. Clicking Retry after correcting the account is a manual action; queued posts still respect account spacing/daily limits. Creating a brand/paid campaign does not automatically authorize unattended publishing.
+
+## Normal clipping: optional end shoutout and creator-tagged titles
+
+- Select the creator with **File under creator** (or clip within the creator's workspace). **New ordinary Gaming/IRL clips automatically include the creator workspace's hashtag in the post title**, e.g. `Huge clutch! #IShowSpeed` or `Unexpected reaction #KaiCenat`. Existing matching creator hashtags are not duplicated; the tag fits inside the 100-character title limit. This also applies when re-saving post text and re-making an ordinary clip.
+- In **Make clips → Options → End-of-clip shoutout**, enable **Show "Watch more on Creator Platform" at the end**. For newly rendered clips, the final 3 seconds show a two-line subtle, white outlined overlay slightly below center: `Watch more on` / `IShowSpeed Twitch` (or YouTube/Kick based on the verified actual source URL). File uploads with no verified source domain show just the selected creator name, and missing creator workspaces do not invent an identity. Disable the checkbox to keep the clip clean.
+- In **Creator → Setup → Clips**, **End shoutout** sets the default for newly generated creator clips, including automatic livestream clips. Each new Make clips job can opt in/out independently; changes to an already rendered video require re-making it. Defaults are off until enabled deliberately.
+- Protected GTA VI, Expedia and paid custom campaign copy remains untouched; the normal branding pass does not override their title or video. The older GTA-specific CTA remains separate and unchanged.
+- This CTA uses the **existing ASS caption and FFmpeg render**, not a second encoding pass, extra clip length, external dependency or new source download.
+
+## LegendClipper improvements (feature branch)
+
+- **Facecam from the source video:** after adding a video link, choose a real frame at a timestamp; draw, move, and resize the webcam rectangle. The final 9:16 render puts the facecam above center-cropped gameplay. You can also skip facecam.
+- **Smart early-stop audio scanning:** for 1–10 requested clips in a recording longer than three minutes, download small audio sections as needed and stop searching when the requested number of strong clips has been selected. If fewer strong moments exist, it continues searching the available range. If section downloading is unavailable, it falls back to the existing full-audio download method.
+- **MAX mode:** scan the complete selected recording, capped at up to 100 clips by the dashboard.
+- **Game-aware metadata:** selected ordinary gaming clips receive more relevant hashtags from the game's title (Minecraft, GTA, Fortnite and other recognized games). Existing custom GTA VI and Expedia campaign logic is unchanged.
+- **Auto resolution (up to 4K):** choose **Auto** in Make clips → Export quality, or Creator → Automatic live clip quality. Remote clips and live recordings fetch at most 2160p; the rendered export is chosen from the **actual downloaded source** (1080p → 1080p, 2160p → 2160p, 1440p → 1440p). Fixed 360p/720p/1080p formats retain their working download rules. Explicit 4K refuses lower-resolution sources. 4K exports use a native-size composition canvas and may use substantially more CPU, RAM, disk and time.
+- **HP Victus:** the included `SETUP-VICTUS-ONE-CLICK.bat` checks Python 3.11, FFmpeg, FFprobe, Deno, ngrok, the local virtual environment and light regressions; it does not overwrite `.env` or `data` and does not start two competing servers.
+- **Custom Campaigns — separate from GTA 6 clipping:** create, edit, activate/pause and delete named brand campaigns in a dedicated sidebar page. Each campaign can store a brand, a requirements brief, optional exact hook/description, hashtags and an informational rate. Choose an active campaign explicitly in **Make clips → Options**. Gemini uses the brief when scouting relevant transcript moments; campaign branding applies only to clips created with that selected campaign. If Gemini is unavailable, a branded campaign will NOT silently fall back to unrelated loudness-only highlights. Campaign deletion does not delete previously rendered clips, and old job snapshots are preserved even on retry. Use **View clips** to filter the library by a campaign; no auto-posting or payout tracking is triggered by campaign creation.
+- **Clip review & pacing:** clip cards show the AI's existing reason for selecting the moment and its campaign tag where applicable; Short (15–30s), Medium (30–60s) and Long (60–120s) buttons speed up setting clip durations without changing existing defaults or the caption pipeline.
+- **Settings key persistence fix:** AI service/model/key saving is separate from the provider connection test. Saves are verified against `data/ai.json`, and the Settings page explicitly shows where credentials are stored (or that the key came from `.env`). An invalid model or rejected key can still be saved; **Test AI connection** reports that error without deleting the saved values. Connected-app credentials now accept rotating only a secret while keeping an ID already configured in `.env`; saves are verified in `data/apps.json`. Keys are private to each laptop/server and never committed to GitHub.
+
+SupoClip (https://github.com/FujiwaraChoki/supoclip) was reviewed for product ideas including clearer clip-selection explanations and quick length presets. Its source is under a **noncommercial license with restrictions on commercial reuse**, so no SupoClip code was copied into LegendClipper. These features are original implementation adapted to the existing PeakCut-based Python/JavaScript architecture. Advanced video editing/B-roll, analytics and automatic social performance sync were NOT imported in this update.
+
+Run the offline regressions on Windows with `.\\.venv\\Scripts\\python.exe tests\\test_custom_campaigns.py` and the existing complete `tests\\run.py` suite. This update is on branch `legend/facecam-preview-audio-repair` until tested/merged; actual Gemini relevance and source-based 4K renders still require real-world checking.
+
+Set `PEAKCUT_SMART_AUDIO=0` in `.env` to disable short-section audio scanning and use the previous full-audio workflow. The source format code was extended for Auto/4K without changing the fixed-quality 360p/720p/1080p selection rules.
+
+For Windows upgrades on both laptops, switch/pull `legend/facecam-preview-audio-repair` (this change is in the feature branch until PR #1 is merged). On the Victus run `SETUP-VICTUS-ONE-CLICK.bat` from the project folder **after updating Git**. If the laptop has only an old ZIP copy without `.git`, clone the repository in a new folder, then transfer your private `.env`, `data` and launcher while the old app is stopped. Do not run the same ngrok reserved domain from two laptops at once.
+
+## Selective upstream PeakCut sync (November 2026)
+
+This branch selectively integrates features from [PeakCut](https://github.com/haziqahmedqasmi/PeakCut) without replacing LegendClipper's known-working recording, selective video-segment downloads, AI provider/key settings, facecam preview, custom GTA VI/Expedia campaigns, or Auto up to 4K.
+
+- **Creator campaign text:** in Creator → Setup → Clips, optionally choose **Big text on every clip** and **Description for every clip**. Leave blank for the usual per-clip AI hook and description. Special GTA VI/Expedia campaign copy takes priority over these defaults. The new overlay headline is deliberately named `overlay_hook_text` because the existing `hook_text` value controls the overlay **color**.
+- **Post-text editing without re-encode:** open a finished normal Gaming/IRL clip and edit title, description or hashtags. **Save post text only** writes metadata without touching the encoded video; publishing uses the latest saved copy. Protected campaign text still requires the existing review/re-make flow.
+- **Write again with AI:** request an optional draft title/description/hashtags from the clip's spoken transcript; edit/review before saving. It uses the currently configured AI provider and never posts or saves automatically. If speech text is missing, manually edit instead.
+- **Friendly download filenames:** individual MP4s and ZIP entries use a safe clip-title name. Actual stored filenames remain stable; posting/preview links are unchanged.
+- **Avoid duplicate hashtags:** prewritten creator descriptions are not given another AI hashtag line. Existing creator-specific posting hashtags and footer behavior remain intact.
+
+Offline regression: `.venv\\Scripts\\python.exe tests\\test_upstream_campaign_sync.py`. Full isolated test suite: `.venv\\Scripts\\python.exe tests\\run.py`. These checks are included in `tests/run.py`; they need to be executed on Windows before declaring the sync verified. The original PeakCut changes beyond this selective batch are **not** yet fully merged.
 
 ## Settings
 

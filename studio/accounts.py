@@ -8,6 +8,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 import threading
@@ -137,26 +138,44 @@ def save_app(platform: str, cid: str, secret: str) -> dict:
         raise ValueError("Unknown platform.")
     name = APP_FOR[platform]
     cid, secret = str(cid or "").strip()[:200], str(secret or "").strip()[:300]
-    old = _apps_saved().get(name) or {}
+    # A configured .env app is just as valid as one saved via the dashboard.
+    # Keeping an existing ID when updating only the secret must work on both.
+    previous_id, previous_secret = app_keys(name)
     if not cid and not secret:
+        if previous_id and previous_secret:
+            return apps_public()
         raise ValueError(f"Paste the {APPS[name][0]} and {APPS[name][1]}.")
-    cid = cid or old.get("id", "")                # only a new secret typed: keep the saved id
+    cid = cid or previous_id
     if not re.fullmatch(r"[\w.\-]{4,200}", cid):
         raise ValueError(f"Paste the {APPS[name][0]} exactly as the platform shows it.")
-    secret = secret or (old.get("secret") if old.get("id") == cid else "")
+    secret = secret or (previous_secret if previous_id == cid else "")
     if not secret:
         raise ValueError(f"Paste the {APPS[name][1]} too.")
     with _lock:
         data = dict(_apps_saved())
         data[name] = {"id": cid, "secret": secret}
-        tmp = _apps_file().with_suffix(".tmp")
-        tmp.write_text(json.dumps(data), encoding="utf-8")
+        import tempfile
+        target = _apps_file()
+        temp_path = None
         try:
-            tmp.chmod(0o600)
-        except OSError:
-            pass
-        tmp.replace(_apps_file())
-        _apps_seen["at"] = None
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", prefix="apps-",
+                                             suffix=".tmp", dir=str(target.parent), delete=False) as tmp:
+                temp_path = Path(tmp.name)
+                json.dump(data, tmp)
+                tmp.flush()
+                os.fsync(tmp.fileno())
+            try:
+                temp_path.chmod(0o600)
+            except OSError:
+                pass
+            os.replace(temp_path, target)
+            _apps_seen["at"] = None
+            verified = _apps_saved().get(name) or {}
+            if verified.get("id") != cid or verified.get("secret") != secret:
+                raise OSError("Saved app credentials could not be verified.")
+        finally:
+            if temp_path and temp_path.exists():
+                temp_path.unlink()
     return apps_public()
 
 

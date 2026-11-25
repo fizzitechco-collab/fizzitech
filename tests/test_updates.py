@@ -3,7 +3,7 @@ so nothing leaves this machine), and only the owner is told."""
 import json, os, sys, tempfile
 from pathlib import Path
 os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="pc-upd-")
-os.environ.update(PEAKCUT_UPDATE_CHECK="1", DATABASE_URL="", PEAKCUT_ACCOUNTS="0", PEAKCUT_PUBLIC_URL="http://127.0.0.1:8765", PEAKCUT_AI_KEY="", PEAKCUT_AI_MODELS="")
+os.environ.update(PEAKCUT_UPDATE_CHECK="1", PEAKCUT_UPDATE_REPO="fizzitechco-collab/fizzitech", DATABASE_URL="", PEAKCUT_ACCOUNTS="0", PEAKCUT_PUBLIC_URL="http://127.0.0.1:8765", PEAKCUT_AI_KEY="", PEAKCUT_AI_MODELS="")
 sys.path.insert(0, ".")
 from fastapi.testclient import TestClient
 from studio import config, db, server, updates

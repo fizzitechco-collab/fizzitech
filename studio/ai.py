@@ -127,14 +127,30 @@ def save(provider_id: str, model_ids, address: str = "", new_key=None) -> dict:
         raise ValueError("Paste the key for this service.")
     with _lock:
         f = _file()
-        tmp = f.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"provider": p, "models": ms, "base_url": address, "key": k}), encoding="utf-8")
+        # Always use the active data folder; persist before reporting success.
+        # A unique temporary file also avoids collisions from back-to-back Saves.
+        import tempfile
+        tmp_name = None
         try:
-            os.chmod(tmp, 0o600)        # the key is only for whoever runs the server
-        except OSError:
-            pass
-        tmp.replace(f)
-        _saved["at"] = None
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".tmp",
+                                             prefix="ai-", dir=str(f.parent), delete=False) as tmp:
+                tmp_name = tmp.name
+                json.dump({"provider": p, "models": ms, "base_url": address, "key": k}, tmp)
+                tmp.flush()
+                os.fsync(tmp.fileno())
+            try:
+                os.chmod(tmp_name, 0o600)
+            except OSError:
+                pass
+            os.replace(tmp_name, f)
+            _saved["at"] = None
+            # Verify the saved file rather than reporting success after an empty/no-op write.
+            checked = _from_dashboard()
+            if checked.get("provider") != p or checked.get("models") != ms or checked.get("key") != k:
+                raise OSError("The saved AI settings could not be verified.")
+        finally:
+            if tmp_name and os.path.exists(tmp_name):
+                os.unlink(tmp_name)
     return public()
 
 

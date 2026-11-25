@@ -1,0 +1,81 @@
+name: LegendClipper regression checks
+
+on:
+  push:
+    branches: [legend/facecam-preview-audio-repair]
+    paths:
+      - 'studio/**'
+      - 'web/**'
+      - 'tests/**'
+      - '.github/workflows/legendclipper-regression.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    name: Offline campaign and persistence regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout feature code
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install project dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Python source compilation
+        run: python -m compileall -q studio tests
+
+      - name: Custom Campaigns — ownership, drafts, clipping and no autopost
+        run: python tests/test_custom_campaigns.py
+
+      - name: Auto-post eligibility and actionable failure diagnostics
+        run: python tests/test_autopost_diagnostics.py
+
+      - name: Upstream content sync — regression checks
+        run: python tests/test_upstream_campaign_sync.py
+
+      - name: AI and connected app keys — fake credentials only
+        run: python tests/test_keys_persistence.py
+
+      - name: Source-matched 4K resolution — offline checks
+        run: python tests/test_source_quality.py
+
+      - name: Normal clipping end-CTA toggle controls
+        run: node tests/test_creator_branding_ui.js
+
+      - name: Normal clip creator hashtag and optional source end CTA
+        run: python tests/test_creator_branding.py
+
+      - name: Protected campaign posting and original-copy confirmation
+        run: node tests/test_protected_campaign_post.js
+
+      - name: Post now and queue account selection regression
+        run: node tests/test_post_now_selector.js
+
+      - name: Verify nullable frontend lists never crash AI or posting UI
+        run: node tests/test_frontend_null_arrays.js
+
+      - name: Check the main dashboard JavaScript syntax
+        shell: bash
+        run: |
+          node --check web/campaigns.js
+          node --check web/gta-autopilot.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('web/index.html').read_text(encoding='utf-8')
+          inline = re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>', html)
+          Path('/tmp/legendclipper-inline.js').write_text('\n'.join(inline), encoding='utf-8')
+          PY
+          node --check /tmp/legendclipper-inline.js

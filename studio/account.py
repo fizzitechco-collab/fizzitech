@@ -66,6 +66,13 @@ def delete_many(job_ids: list, clip_ids: list) -> dict:
     return out
 
 
+def clip_title_name(clip: dict, fallback: str = "clip") -> str:
+    """Safe downloaded file name from the clip title, rather than clip01.mp4."""
+    title = clip.get("title") or clip.get("hook") or fallback
+    name = "".join(ch if ch.isalnum() or ch in " -_" else "" for ch in str(title))[:60].strip()
+    return name or fallback
+
+
 def zip_clips(clip_ids: list, limit_gb: float = 4.0) -> Path:
     """One .zip of finished clips, for downloading many at once. Clips are already compressed, so they are only
     stored, not squeezed again: making the file is as fast as copying."""
@@ -81,7 +88,7 @@ def zip_clips(clip_ids: list, limit_gb: float = 4.0) -> Path:
         total += f.stat().st_size
         if total > limit_gb * 1e9:
             raise ValueError(f"That is more than {limit_gb:g} GB of clips. Download them in smaller groups.")
-        base = "".join(ch if ch.isalnum() or ch in " -_" else "" for ch in (clip.get("title") or clip.get("hook") or cid))[:60].strip() or cid
+        base = clip_title_name(clip, cid)
         name, n = f"{base}.mp4", 2
         while name.lower() in seen:
             name, n = f"{base} ({n}).mp4", n + 1

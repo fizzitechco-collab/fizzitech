@@ -241,30 +241,36 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     return head + "\n".join(ev) + "\n"
 
 
-def _filter(layout, fg_h, roi=None):
+def _filter(layout, fg_h, roi=None, canvas_w=W):
+    """Compose directly at native export size above 1080p, not upscale 1080p output."""
+    canvas_w = int(canvas_w)
+    canvas_h = canvas_w * 16 // 9
+    factor = canvas_w / W
+    fg = int(round(fg_h * factor / 2)) * 2
     if layout == "facecam":
-        # The source is sampled for a small streamer camera in the corners.
-        # Gameplay fills the lower viewport; facecam fills the upper viewport.
         if roi is None:
             raise ValueError("No webcam rectangle detected. Choose a webcam corner in Options to force the full panel.")
         x, y, w, h = roi
-        upper = 680
-        lower = H - upper
+        upper = int(round(680 * factor / 2)) * 2
+        lower = canvas_h - upper
         return (f"[0:v]fps={config.OUT_FPS},split=2[wc][game];"
                 f"[wc]crop=iw*{w:.4f}:ih*{h:.4f}:iw*{x:.4f}:ih*{y:.4f},"
-                f"scale={W}:{upper}:force_original_aspect_ratio=increase,crop={W}:{upper},setsar=1[cam];"
-                f"[game]scale={W}:{lower}:force_original_aspect_ratio=increase,crop={W}:{lower},setsar=1[gameplay];"
+                f"scale={canvas_w}:{upper}:force_original_aspect_ratio=increase,crop={canvas_w}:{upper},setsar=1[cam];"
+                f"[game]scale={canvas_w}:{lower}:force_original_aspect_ratio=increase,crop={canvas_w}:{lower},setsar=1[gameplay];"
                 f"[cam][gameplay]vstack=inputs=2,setsar=1[v0];")
     if layout == "crop":
-        return f"[0:v]fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[v0];"
+        return (f"[0:v]fps={config.OUT_FPS},scale={canvas_w}:{canvas_h}:"
+                f"force_original_aspect_ratio=increase,crop={canvas_w}:{canvas_h},setsar=1[v0];")
+    bw, bh = int(round(270 * factor / 2)) * 2, int(round(480 * factor / 2)) * 2
     return (f"[0:v]fps={config.OUT_FPS},split=2[a][b];"
-            f"[a]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=6:2,"
-            f"scale={W}:{H},eq=brightness=-0.14:saturation=1.15[bg];"
-            f"[b]scale={W}:{fg_h}:force_original_aspect_ratio=increase,crop={W}:{fg_h}[fg];"
+            f"[a]scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},boxblur=6:2,"
+            f"scale={canvas_w}:{canvas_h},eq=brightness=-0.14:saturation=1.15[bg];"
+            f"[b]scale={canvas_w}:{fg}:force_original_aspect_ratio=increase,crop={canvas_w}:{fg}[fg];"
             f"[bg][fg]overlay=0:(H-h)/2,setsar=1[v0];")
 
 
 _qsv_ok = None
+_nvenc_ok = None  # optional RTX encoding for Auto >1080p only
 RENDER_SECONDS = 600      # one clip's video encode; far beyond normal, so a frozen encoder is stopped, not waited on
 
 
@@ -303,6 +309,22 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     if clip.get("cta_enabled"):
         from .gta_cta import add_cta
         ass = add_cta(ass, clip, end - start)
+    if clip.get("watch_more_enabled"):
+        from .gta_cta import add_watch_more
+        ass = add_watch_more(ass, clip, end - start)
+    from . import source_quality
+    requested_quality = int(clip.get("quality", 720))
+    if requested_quality == source_quality.AUTO:
+        # Check the actual downloaded/recorded source, not a video's advertised 4K metadata.
+        from .media import probe
+        real = probe(src)
+        actual_quality = source_quality.auto_export_height(real["width"], real["height"])
+        clip = dict(clip, quality=actual_quality)
+    elif requested_quality == 2160:
+        from .media import probe
+        real = probe(src)
+        if min(real["width"], real["height"]) < 2160:
+            raise ValueError("4K export requested, but this source is not 4K. Choose Auto for source-matched resolution.")
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
     # folders easily reaches. Inside the work folder every name is short and relative (a drive colon would also
@@ -322,21 +344,31 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
 
 def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str,
                cancelled=None, quality=720, roi=None) -> dict:
-    global _qsv_ok
+    global _qsv_ok, _nvenc_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
     for f in config.FONTS_DIR.glob("*.ttf"):
         shutil.copyfile(f, work / "f" / f.name)
-    # Compose at 1080x1920 for consistent subtitle placement, downscale at
-    # the end for genuine 360x640/720x1280/1080x1920 output profiles.
-    target_w = int(quality) if int(quality) in (360, 720, 1080, 2160) else 720
+    # Small exports retain the verified 1080px canvas. Larger-than-1080
+    # exports compose from original pixels at native output size.
+    from .source_quality import PRESETS
+    target_w = int(quality) if int(quality) in PRESETS else 720
     target_h = target_w * 16 // 9
-    fc = (_filter(layout, fg_h, roi=roi) +
-          f"[v0]ass={name}.ass:fontsdir=f,scale={target_w}:{target_h}:flags=lanczos,format=yuv420p[v]")
+    if target_h % 2:
+        target_h -= 1
+    canvas_w = max(W, target_w)
+    scale_down = (f",scale={target_w}:{target_h}:flags=lanczos" if target_w < W else "")
+    fc = (_filter(layout, fg_h, roi=roi, canvas_w=canvas_w) +
+          f"[v0]ass={name}.ass:fontsdir=f{scale_down},format=yuv420p[v]")
     base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{end - start:.2f}", "-i", str(src),
             "-filter_complex", fc, "-map", "[v]", "-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-pix_fmt"]
     encoders = []
+    if target_w > 1080 and _nvenc_ok is not False:
+        # Native 1440p/4K on HP Victus RTX laptops, with QSV and x264 fallback.
+        # Smaller existing exports retain their previous encoder order.
+        encoders.append(("nvenc", ["yuv420p", "-c:v", "h264_nvenc", "-preset", "p5",
+                                    "-rc", "vbr", "-cq", "19", "-b:v", "0"]))
     if _qsv_ok is not False:
         encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "18" if target_w >= 1080 else "21", "-preset", "medium"]))
     encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "17" if target_w >= 1080 else "19", "-preset", "medium" if target_w >= 1080 else "veryfast"]))
@@ -349,6 +381,8 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
                                           RENDER_SECONDS, cancelled=cancelled, idle_seconds=180)
             if label == "qsv":
                 _qsv_ok = True
+            if label == "nvenc":
+                _nvenc_ok = True
             break
         except segment_download.DownloadCancelled:
             raise
@@ -356,6 +390,8 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
             err = str(e)[-500:]
             if label == "qsv":
                 _qsv_ok = False
+            if label == "nvenc":
+                _nvenc_ok = False
     else:
         raise RuntimeError(f"Render failed: {err}")
     cover_t = min(1.2, (end - start) / 2)

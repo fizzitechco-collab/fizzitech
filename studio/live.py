@@ -49,13 +49,17 @@ class _Quiet:
 def resolve(url: str, quality: int = 1080) -> dict:
     """Ask yt-dlp for the stream's playable address. Raises NotLive if the channel is offline."""
     import yt_dlp
-    # LEGEND_SOURCE1080_LIVE_V1: source download/buffer never exceeds 1080p.
-    quality = min(1080, int(quality))
-    cap = 1080 if quality >= 1080 else (quality if quality >= 720 else 360)
-    minimum = 1080 if quality >= 1080 else (720 if quality >= 720 else 0)
-    fmt = (f"b[height>={minimum}][height<={cap}]/"
-           f"bv*[height>={minimum}][height<={cap}]+ba/"
-           f"b[height<={cap}]/bv*[height<={cap}]+ba") if minimum else "18/b[height<=360]/bv*[height<=360]+ba"
+    # Auto chooses the highest available source up to 4K; fixed modes
+    # retain the previous verified selection except for explicit 4K.
+    quality = min(2160, int(quality))
+    if quality == 0:
+        fmt = "bv*[height<=2160]+ba/b[height<=2160]"
+    else:
+        cap = quality if quality >= 720 else 360
+        minimum = 2160 if quality >= 2160 else (1080 if quality >= 1080 else (720 if quality >= 720 else 0))
+        fmt = (f"b[height>={minimum}][height<={cap}]/"
+               f"bv*[height>={minimum}][height<={cap}]+ba/"
+               f"b[height<={cap}]/bv*[height<={cap}]+ba") if minimum else "18/b[height<=360]/bv*[height<=360]+ba"
     opts = {"quiet": True, "no_warnings": True, "noplaylist": True, "logger": _Quiet(), "format": fmt}
     if media.is_youtube(url) and media.youtube_paused():
         raise NotLive(media.YT_BLOCKED)
@@ -471,6 +475,17 @@ class Session:
                  cta_enabled=self.settings.get("cta_enabled", False),
                  cta_creator_name=self.job.get("uploader") or self.job.get("title") or "",
                  status="queued", version=0, made_at=time.time())
+        # Apply creator-wide campaign copy only to ordinary clips. Existing GTA
+        # VI/Expedia automated campaign metadata takes priority.
+        if self.settings.get("clip_mode", "gaming") in ("gaming", "irl"):
+            if self.settings.get("overlay_hook_text"):
+                c["hook"] = self.settings["overlay_hook_text"]
+            if self.settings.get("description_text"):
+                c["description"] = self.settings["description_text"]
+                c["fixed_description"] = True
+        from . import creator_branding
+        # Use the selected creator workspace, never an AI-inferred streamer name.
+        creator_branding.decorate_clip(c, self.job, self.settings.get("name", ""))
         with self.lock:
             self.job["clips"].append(c)
         jobs.save(self.job)
@@ -511,7 +526,7 @@ class Session:
         clip.update(src=str(src), src_offset=round(offset, 2), src_end=round(offset + dur, 2))
         # Prevent an unknown 360p live variant being silently labeled 1080p.
         wanted = int(self.settings.get("clip_quality", 1080))
-        needed = 2160 if wanted >= 2160 else (1080 if wanted >= 1080 else (720 if wanted >= 720 else 0))
+        needed = 0 if wanted == 0 else (2160 if wanted >= 2160 else (1080 if wanted >= 1080 else (720 if wanted >= 720 else 0)))
         actual_meta = media.probe(src)
         actual = min(int(actual_meta.get("width",0)), int(actual_meta.get("height",0)))
         clip["source_quality"] = actual

@@ -91,27 +91,115 @@ def enqueue(job, clip, account_ids, now=False) -> list:
     return made
 
 
+def _auto_targets(c: dict) -> list[str]:
+    """Only connected, deliberately selected posting destinations."""
+    ids = list(dict.fromkeys(c.get("accounts") or []))
+    chosen_youtube = c.get("youtube_account")
+    if chosen_youtube:
+        ids = [aid for aid in ids if (accounts.get(aid) or {}).get("platform") != "youtube"]
+        ids.append(chosen_youtube)
+    return [aid for aid in ids if accounts.get(aid)]
+
+
+def auto_post_check(job, clip, creator=None) -> tuple[bool, str, list[str]]:
+    """Single transparent explanation used by the callback and dashboard.
+
+    This is an eligibility check, not a platform token/API verification.
+    """
+    cid = job.get("creator")
+    if not cid:
+        return False, "Video has no creator workspace. Select 'File under creator' when making clips.", []
+    c = creator if creator is not None else creators.get(cid)
+    if not c:
+        return False, "Creator workspace no longer exists.", []
+    if job.get("custom_campaign") or (job.get("options") or {}).get("clip_mode") == "expedia_ishowspeed":
+        return False, "Campaign clips require manual review and posting.", []
+    if clip.get("status") != "done":
+        return False, "Clip is not finished rendering yet.", []
+    if not c.get("autopost"):
+        return False, "Creator Auto-post is OFF in Setup → Posting.", []
+    if not c.get("post_rights_confirmed"):
+        return False, "Confirm your permission to publish in Creator → Setup → Posting.", []
+    targets = _auto_targets(c)
+    if not targets:
+        return False, "No connected publishing destination selected for this creator.", []
+    score = float(clip.get("score") or 0)
+    threshold = int(c.get("post_min_score", 75))
+    if score < threshold:
+        return False, f"Clip score {score:g} is below the auto-post minimum {threshold}.", []
+    return True, "Eligible for auto-post queue.", targets
+
+
 def on_clip_ready(job, clip):
     """Called once when a clip first finishes rendering."""
-    c = creators.get(job["creator"])
-    # LEGEND_GTA6_AUTO_V2: explicit source reuse permission required for unattended posts.
-    if not c or not c["autopost"] or not c["accounts"] or not c.get("post_rights_confirmed", False):
+    c = creators.get(job.get("creator"))
+    allowed, reason, targets = auto_post_check(job, clip, c)
+    if not allowed:
+        if c:
+            creators.log(job.get("creator"), f"Auto-post skipped: {reason}")
         return
-    # Never silently upload third-party streams or paid campaign submissions.
-    if not c.get("post_rights_confirmed"):
-        return
-    if (job.get("options") or {}).get("clip_mode") == "expedia_ishowspeed":
-        return
-    if clip.get("score", 0) < c["post_min_score"]:
-        return  # includes hand-made clips (score 0): those wait for you to press Post
-    targets = list(c["accounts"])
-    if c.get("youtube_account"):
-        # Explicit upload channel takes precedence over legacy multiple YT choices.
-        targets = [aid for aid in targets if (accounts.get(aid) or {}).get("platform") != "youtube"]
-        targets.append(c["youtube_account"])
     made = enqueue(job, clip, targets, now=bool(c.get("gta_auto_sequential")))
     if made:
-        creators.log(c["id"], f"Queued for {len(made)} account(s): {clip.get('title') or clip.get('hook')}")
+        creators.log(job.get("creator"), f"Queued for {len(made)} account(s): {clip.get('title') or clip.get('hook')}")
+
+
+def diagnostics(creator_id: str) -> dict:
+    """Diagnose local auto-post settings, existing queue and completed clips.
+
+    Only server-visible user-owned records; never expose OAuth tokens.
+    """
+    c = creators.get(creator_id)
+    if not c:
+        raise KeyError(creator_id)
+    targets = _auto_targets(c)
+    selected = list(dict.fromkeys((c.get("accounts") or []) +
+                                  ([c["youtube_account"]] if c.get("youtube_account") else [])))
+    disconnected = [aid for aid in selected if not accounts.get(aid)]
+    paused = bool(accounts.settings().get("paused"))
+    notices = []
+    if not c.get("autopost"):
+        notices.append("Auto-post is OFF for this creator.")
+    if not c.get("post_rights_confirmed"):
+        notices.append("Permission to publish is not confirmed.")
+    if not targets:
+        notices.append("No connected destination is selected.")
+    if disconnected:
+        notices.append(f"{len(disconnected)} selected account(s) are no longer connected.")
+    if paused:
+        notices.append("Global posting queue is PAUSED on Home.")
+    recent = []
+    all_posted = _mine()
+    for job in sorted((j for j in jobs.list_jobs() if j.get("creator") == creator_id),
+                      key=lambda j: j.get("created", 0), reverse=True):
+        for clip in reversed(job.get("clips") or []):
+            if clip.get("status") != "done":
+                continue
+            posts = [p for p in all_posted if p.get("job") == job.get("id") and p.get("clip") == clip.get("id")]
+            allowed, reason, eligible_targets = auto_post_check(job, clip, c)
+            if posts:
+                # Posting service records take precedence over eligibility; old jobs
+                # can have been queued under settings which have since changed.
+                reason = "Post records: " + ", ".join(
+                    f"{p.get('platform')}: {p.get('status')}" +
+                    (f" ({p.get('error')})" if p.get("status") == "failed" and p.get("error") else "")
+                    for p in posts[:5])
+            elif allowed:
+                reason = "Eligible but not queued. Auto-post applies when a NEW clip finishes; use Post for existing clips."
+            recent.append({"job": job.get("id"), "clip": clip.get("id"),
+                           "title": str(clip.get("title") or clip.get("hook") or "Clip")[:110],
+                           "score": clip.get("score", 0), "reason": reason,
+                           "queued": bool(posts)})
+            if len(recent) >= 8:
+                break
+        if len(recent) >= 8:
+            break
+    return {"creator": creator_id, "enabled": bool(c.get("autopost")),
+            "rights_confirmed": bool(c.get("post_rights_confirmed")),
+            "selected_accounts": len(selected), "connected_destinations": len(targets),
+            "disconnected_accounts": len(disconnected), "paused": paused,
+            "min_score": int(c.get("post_min_score", 75)),
+            "notices": notices, "recent": recent}
+
 
 
 # LEGEND_CREATOR_HASHTAG_V1: add the source creator's hashtag to auto-posts.
@@ -134,7 +222,8 @@ def _with_creator_hashtag(text, hashtag, max_length=None):
 
 
 def _caption(clip, creator):
-    tags = " ".join("#" + str(h).lstrip("#") for h in clip.get("hashtags", []) if h)
+    tags = "" if clip.get("fixed_description") or clip.get("hashtags_in_description") else " ".join(
+        "#" + str(h).lstrip("#") for h in clip.get("hashtags", []) if h)
     base = "\n\n".join(x for x in (clip.get("description", ""), tags, creator.get("post_footer", "")) if x)
     return _with_creator_hashtag(base, _creator_hashtag(creator))
 

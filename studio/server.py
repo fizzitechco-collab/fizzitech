@@ -20,8 +20,9 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from . import admin as admins
+from . import custom_campaigns
 from . import account, load
-from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live, media, posting,
+from . import (accounts, ai, alerts, auth, brain, config, creators, ctx, db, jobs, live, media, posting,
                profiles, render, safe, transcribe, usage)
 
 from . import tools as _tools  # noqa: E402
@@ -42,7 +43,7 @@ PAGES = {"/": "landing.html", "/login": "auth.html", "/signup": "auth.html", "/r
          "/privacy": "legal.html", "/terms": "legal.html", "/acceptable-use": "legal.html"}
 VIDEO_TYPES = {".mp4", ".mov", ".mkv", ".webm", ".m4v", ".ts", ".flv"}
 CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-       "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; "
+       "font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; "
        "frame-src https://player.twitch.tv https://www.youtube-nocookie.com https://player.kick.com; "
        "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com")
 
@@ -669,6 +670,57 @@ def sync(v: str = ""):
             "accounts": accounts.list_accounts(), "ai": usage.brief(), "unread": notices.unread()}
 
 
+# LEGEND_CUSTOM_CAMPAIGNS_V1: owned, per-user campaign definitions.
+# This is NOT the existing GTA VI/Expedia clip-mode preset.
+@app.get("/api/custom-campaigns")
+def list_custom_campaigns():
+    try:
+        return custom_campaigns.all_campaigns()
+    except ValueError as e:
+        raise HTTPException(500, str(e))
+
+
+@app.post("/api/custom-campaigns")
+def create_custom_campaign(body: dict = Body(...)):
+    _need_verified()
+    _throttle("campaigncreate:" + ctx.uid(), 30, 600)
+    try:
+        return custom_campaigns.create(body)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save this campaign. Check server disk space and permissions.")
+
+
+@app.put("/api/custom-campaigns/{cid}")
+def update_custom_campaign(cid: str, body: dict = Body(...)):
+    _need_verified()
+    _throttle("campaignupdate:" + ctx.uid(), 100, 600)
+    try:
+        return custom_campaigns.update(cid, body)
+    except KeyError:
+        raise HTTPException(404, "Campaign not found.")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save this campaign. Check server disk space and permissions.")
+
+
+@app.delete("/api/custom-campaigns/{cid}")
+def delete_custom_campaign(cid: str):
+    _need_verified()
+    _throttle("campaigndelete:" + ctx.uid(), 30, 600)
+    try:
+        custom_campaigns.delete(cid)
+    except KeyError:
+        raise HTTPException(404, "Campaign not found.")
+    except ValueError as e:
+        raise HTTPException(500, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not delete this campaign. Check server disk space and permissions.")
+    return {"ok": True}
+
+
 @app.get("/api/jobs")
 def list_jobs():
     return [jobs.public(j) for j in jobs.list_jobs()]
@@ -719,6 +771,31 @@ def link_preview(request: Request, url: str = ""):
         raise
     except Exception:
         raise HTTPException(422, "Couldn't open that video. Check the link is public and complete.")
+
+
+@app.get("/api/facecam-frame")
+def facecam_frame(request: Request, url: str = "", at: float = 60.0):
+    """One real frame for source-normalized webcam selection before making clips."""
+    url = url.strip()[:500]
+    if not media.site_allowed(url):
+        raise HTTPException(400, "Paste a supported video link.")
+    if not 0 <= at <= 43200:
+        raise HTTPException(400, "Preview time must be 0 to 43200 seconds.")
+    try:
+        auth.throttle(f"facecam-frame:{_me(request).id}", 5, 60)
+    except auth.AuthError:
+        raise HTTPException(429, "Too many frame previews. Try again shortly.")
+    try:
+        from . import webcam_preview
+        data = webcam_preview.frame(url, at)
+        return Response(content=data, media_type="image/jpeg",
+                        headers={"Cache-Control": "private, no-store"})
+    except media.YouTubeBlocked as exc:
+        raise HTTPException(503, str(exc))
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    except Exception:
+        raise HTTPException(422, "Could not get a frame from this timestamp. Try a different time, or use the preview after clips are found.")
 
 
 @app.post("/api/jobs")
@@ -955,6 +1032,44 @@ def legend_stop_video_during_audio(jid: str):
     return {"ok": True, "status": result["status"], "stage": result.get("stage", "")}
 
 
+@app.put("/api/jobs/{jid}/clips/{cid}/text")
+def save_clip_post_text(jid: str, cid: str, body: dict = Body(...)):
+    """Save title, description and hashtags without rerendering. Ownership checked."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "No such clip")
+    _throttle("cliptext:" + ctx.uid(), 120, 600)
+    try:
+        jobs.save_post_text(job, clip, body)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+    return jobs.public(job)
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/write")
+def rewrite_clip_post_text(jid: str, cid: str):
+    """AI drafts post copy for review; never saves or publishes it automatically."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "No such clip")
+    if clip.get("status") != "done":
+        raise HTTPException(409, "The clip must be finished before rewriting post text.")
+    if clip.get("campaign_review_required") or job.get("options", {}).get("clip_mode") not in ("gaming", "irl"):
+        raise HTTPException(409, "Protected campaign copy cannot be rewritten automatically.")
+    _throttle("clipwrite:" + ctx.uid(), 15, 600)
+    usage.set_context(job.get("creator"), job.get("title") or "")
+    try:
+        return brain.rewrite_post_text(jobs.spoken_in(job, clip),
+                                       job.get("title") or "", job.get("uploader") or "",
+                                       game=job.get("game") or None)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+
+
 @app.post("/api/jobs/{jid}/clips/{cid}/render")
 def rerender(jid: str, cid: str, body: dict = Body(...)):
     job = _job_or_404(jid)
@@ -1054,10 +1169,18 @@ def delete_my_account(request: Request, body: dict = Body(...)):
 def media_file(jid: str, name: str, download: int = 0):
     if not re.fullmatch(r"[\w\-]+\.(mp4|jpg)", name):
         raise HTTPException(404)
-    f = Path(_job_or_404(jid)["dir"]) / "clips" / name
+    job = _job_or_404(jid)
+    f = Path(job["dir"]) / "clips" / name
     if not f.is_file():
         raise HTTPException(404)
-    return FileResponse(f, filename=name if download else None, headers={"Cache-Control": "private, max-age=300"})
+    # Preserve the stable stored clip filename: only change the name offered to
+    # the browser when a person explicitly downloads the MP4.
+    save_as = name
+    if download and name.endswith(".mp4"):
+        clip = next((c for c in job.get("clips", []) if c.get("file") == name), None)
+        if clip:
+            save_as = account.clip_title_name(clip, Path(name).stem) + ".mp4"
+    return FileResponse(f, filename=save_as if download else None, headers={"Cache-Control": "private, max-age=300"})
 
 
 # ================================================================ creators and live recording
@@ -1214,6 +1337,17 @@ def gta_auto_stop(body: dict = Body(default={})):
     try: return auto.stop((body or {}).get("lang", "both"))
     except ValueError as e: raise HTTPException(400, str(e))
 
+@app.get("/api/creators/{cid}/autopost-diagnostics")
+def creator_autopost_diagnostics(cid: str):
+    """User-visible explanation for skipped posts and queue failures."""
+    try:
+        return posting.diagnostics(cid)
+    except KeyError:
+        raise HTTPException(404, "No such creator")
+    except (ValueError, OSError) as exc:
+        raise HTTPException(503, "Could not read posting status: " + str(exc))
+
+
 @app.get("/api/creators")
 def list_creators():
     return _creator_rows()
@@ -1350,6 +1484,8 @@ def ai_put(request: Request, body: dict = Body(...)):
                       None if k is None or (isinstance(k, str) and not k.strip() and not body.get("remove_key")) else str(k))
     except (ValueError, TypeError) as e:
         raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save the AI key to the data folder. Check folder permissions and disk space.")
     usage.forget_all()
     ctx.bump()
     return out
@@ -1525,6 +1661,8 @@ def apps_put(request: Request, body: dict = Body(...)):
         return accounts.save_app(str(body.get("platform", "")), body.get("client_id"), body.get("client_secret"))
     except ValueError as e:
         raise HTTPException(400, str(e))
+    except OSError:
+        raise HTTPException(500, "Could not save the app credentials to the data folder. Check permissions and disk space.")
 
 
 @app.post("/api/posts")

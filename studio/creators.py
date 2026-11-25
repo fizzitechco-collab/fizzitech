@@ -17,11 +17,25 @@ _lock = threading.RLock()
 DEFAULTS = {"name": "", "channel": "", "style": "bounce", "layout": "blur", "min_len": 15, "max_len": 60,
             "max_clips": 6, "min_score": 80, "auto_watch": False, "buffer_min": 20, "live_per_hour": 4, "ai_every_min": 3, "ai_only_on_spike": True, "auto_jump_pct": 60,
             "plan": "free", "decide_mode": "both", "must_clip_min": 0, "min_gap_min": 2,
-            "trigger_words": "clip that, clip it",
+            "trigger_words": "clip that, clip it", "overlay_hook_text": "", "description_text": "",
             "autopost": False, "accounts": [], "post_min_score": 75, "post_gap_min": 45, "daily_cap": 6,
             "privacy": "public", "post_footer": "", "rate_per_1k": 0.0, "channels": {},
-            "youtube_account": "", "post_rights_confirmed": False, "facecam_position": "auto", "facecam_size": "medium", "clip_quality": 1080, "facecam_rect": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "gta_auto_sequential": False, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
+            "youtube_account": "", "post_rights_confirmed": False, "facecam_position": "auto", "facecam_size": "medium", "clip_quality": 1080, "facecam_rect": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "gta_auto_sequential": False, "cta_enabled": False, "cta_creator_name": "", "watch_more_enabled": False}  # LEGEND_GTA6_AUTO_V2
 PLATFORMS = ("youtube", "twitch", "kick")
+
+
+def clean_overlay_hook(value) -> str:
+    """Creator campaign overlay text, independent of existing hook-text color."""
+    return " ".join("".join(ch if ch.isprintable() else " " for ch in str(value or "")).split())[:60]
+
+
+def clean_description_text(value) -> str:
+    """Preserve creator's campaign links, mentions, hashtags and newlines."""
+    newline = "\n"
+    lines = ("".join(ch if ch.isprintable() or ch == "\t" else " " for ch in line).rstrip()
+             for line in str(value or "").replace("\r\n", newline).replace("\r", newline).split(newline))
+    return newline.join(lines).strip()[:2000]
+
 
 
 def platform_key(url: str) -> str:
@@ -61,16 +75,20 @@ def _clean(data: dict) -> dict:
         if k in NUMERIC:
             lo, hi = NUMERIC[k]
             v = max(lo, min(hi, int(float(v))))
-        elif k in ("auto_watch", "autopost", "ai_only_on_spike", "post_rights_confirmed", "gta6_only_live", "facecam_review", "gta_auto_sequential", "cta_enabled"):
+        elif k in ("auto_watch", "autopost", "ai_only_on_spike", "post_rights_confirmed", "gta6_only_live", "facecam_review", "gta_auto_sequential", "cta_enabled", "watch_more_enabled"):
             v = bool(v)
         elif k == "channels":
             v = {p: str(u).strip()[:300] for p, u in (v.items() if isinstance(v, dict) else []) if p in PLATFORMS and str(u).strip()}
         elif k == "accounts":
             v = [str(x) for x in v][:20] if isinstance(v, list) else []
+        elif k == "overlay_hook_text":
+            v = clean_overlay_hook(v)
+        elif k == "description_text":
+            v = clean_description_text(v)
         elif k == "rate_per_1k":
             v = max(0.0, min(1000.0, float(v or 0)))
         elif k == "clip_quality":
-            v = int(v) if int(v) in (360, 720, 1080, 2160) else 1080
+            v = int(v) if int(v) in (0, 360, 720, 1080, 2160) else 1080
         elif k == "plan":
             v = v if v in ("free", "pro", "max") else "free"
         elif k == "decide_mode":
