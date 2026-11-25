@@ -483,6 +483,9 @@ class Session:
             if self.settings.get("description_text"):
                 c["description"] = self.settings["description_text"]
                 c["fixed_description"] = True
+        from . import creator_branding
+        # Use the selected creator workspace, never an AI-inferred streamer name.
+        creator_branding.decorate_clip(c, self.job, self.settings.get("name", ""))
         with self.lock:
             self.job["clips"].append(c)
         jobs.save(self.job)
