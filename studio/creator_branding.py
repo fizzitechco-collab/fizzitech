@@ -1,27 +1,30 @@
-"""Source-grounded optional clip end CTA and creator-name post title attribution.
+"""Selected creator credit for ordinary clips, with no hashtag prefixes.
 
-Do not infer streamer identity from AI output; only use an explicitly selected
-creator workspace. Never change protected GTA/Expedia or custom campaign copy.
+Creator identity is taken from a selected workspace, never guessed from AI text.
+Protected brand and special campaigns retain their approved text.
 """
 import re
 from urllib.parse import urlparse
 
 
-def creator_hashtag(name: str) -> str:
-    """A single readable hashtag suitable for a clip title."""
+def creator_label(name: str) -> str:
+    """Compact, readable creator handle without a social hashtag marker."""
     value = "".join(re.findall(r"[^\W_]+", str(name or ""), flags=re.UNICODE))[:55]
-    return "#" + value if value and not value.isdigit() else ""
+    return value if value and not value.isdigit() else ""
 
 
 def title_with_creator(title: str, creator_name: str, *, protected: bool = False) -> str:
-    """Add the selected creator's hashtag once, inside YouTube's title limit."""
+    """Credit selected creator once in a <=100-character title, without '#'."""
     title = str(title or "").strip()[:100]
-    tag = creator_hashtag(creator_name)
-    if protected or not tag:
+    label = creator_label(creator_name)
+    if protected or not label:
         return title
-    if re.search(r"(?<![\w])" + re.escape(tag) + r"(?![\w])", title, flags=re.IGNORECASE):
+    # Convert a legacy auto-appended #Creator label to plain Creator.
+    existing_tag = re.compile(r"(?<![\w])#" + re.escape(label) + r"(?![\w])", re.IGNORECASE)
+    title = existing_tag.sub(label, title)
+    if re.search(r"(?<![\w])" + re.escape(label) + r"(?![\w])", title, re.IGNORECASE):
         return title
-    return (title[:100-len(tag)-1].rstrip() + " " + tag).strip()
+    return (title[:100 - len(label) - 1].rstrip() + " " + label).strip()
 
 
 def source_platform(source: dict) -> str:
@@ -47,6 +50,6 @@ def decorate_clip(clip: dict, job: dict, creator_name: str) -> dict:
     if not protected and creator_name:
         clip["title"] = title_with_creator(clip.get("title"), creator_name)
     clip["watch_more_enabled"] = bool((job.get("options") or {}).get("watch_more_enabled")) and not protected
-    clip["watch_more_name"] = creator_hashtag(creator_name) if not protected else ""
+    clip["watch_more_name"] = creator_label(creator_name) if not protected else ""
     clip["watch_more_platform"] = source_platform(job.get("source")) if not protected else ""
     return clip
