@@ -25,19 +25,19 @@ def add_cta(ass: str, clip: dict, seconds: float) -> str:
 def add_watch_more(ass: str, clip: dict, seconds: float) -> str:
     """Optional two-line normal clip CTA: below center, final 3 seconds.
 
-    The on-screen creator hashtag comes from the selected workspace, and the
+    The on-screen creator name comes from the selected workspace, and the
     source platform is derived from the actual video URL, not an AI guess.
     No additional black frame or second encoding pass.
     """
     if not clip.get("watch_more_enabled") or seconds <= 1.3:
         return ass
-    name = re.sub(r"[^A-Za-z0-9_#]", "", str(clip.get("watch_more_name") or ""))[:58]
-    if not name or not name.startswith("#"):
+    name = re.sub(r"[^A-Za-z0-9_]", "", str(clip.get("watch_more_name") or "").lstrip("#"))[:58]
+    if not name:
         return ass  # no selected creator identity: no misleading promo
     platform = str(clip.get("watch_more_platform") or "")
     if platform not in ("YouTube", "Twitch", "Kick"):
         platform = ""
-    second_line = name + ("  #" + platform if platform else "")
+    second_line = name + ("  " + platform if platform else "")
     start, end = max(0.0, seconds - 3.0), max(0.0, seconds - 0.06)
     if end <= start:
         return ass
