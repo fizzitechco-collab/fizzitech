@@ -548,7 +548,11 @@ def save_post_text(job, clip, changes: dict):
         raise ValueError("Provide the post text fields.")
     new = {}
     if "title" in changes:
-        new["title"] = str(changes["title"] or "")[:100].strip()
+        title = str(changes["title"] or "")[:100].strip()
+        workspace = creators.get(job.get("creator")) if job.get("creator") else None
+        if workspace and not job.get("custom_campaign"):
+            title = creator_branding.title_with_creator(title, workspace.get("name", ""))
+        new["title"] = title
     if "description" in changes:
         new["description"] = creators.clean_description_text(changes["description"])
     if "hashtags" in changes:
@@ -669,6 +673,10 @@ def request_render(jid, cid, changes: dict):
         new["facecam_reviewed"] = True
     elif clip.get("status") == "needs_facecam":
         raise ValueError("First choose a webcam rectangle, or press Skip facecam.")
+    if "title" in changes and job["options"].get("clip_mode", "gaming") in ("gaming", "irl") and not job.get("custom_campaign") and not clip.get("campaign_review_required"):
+        workspace = creators.get(job.get("creator")) if job.get("creator") else None
+        if workspace:
+            new["title"] = creator_branding.title_with_creator(new.get("title", ""), workspace.get("name", ""))
     clip.update(new, status="queued", cancel_requested=False, timed_out=False, error=None)
     save(job)
     _q.put(("clip", jid, cid))
