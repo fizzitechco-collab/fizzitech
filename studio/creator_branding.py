@@ -21,10 +21,10 @@ def title_with_creator(title: str, creator_name: str, *, protected: bool = False
     if protected or not tag:
         return title
     # An existing #Creator (case-insensitive) should never be duplicated.
-    if re.search(r"(?<![\\w])" + re.escape(tag) + r"(?![\\w])", title, re.IGNORECASE):
+    if re.search(r"(?<![\w])" + re.escape(tag) + r"(?![\w])", title, re.IGNORECASE):
         return title
     # Convert an unprefixed legacy creator suffix to the requested hashtag.
-    existing = re.compile(r"(?<![\\w#])" + re.escape(label) + r"(?![\\w])", re.IGNORECASE)
+    existing = re.compile(r"(?<![\w#])" + re.escape(label) + r"(?![\w])", re.IGNORECASE)
     if existing.search(title):
         replaced = existing.sub(tag, title, count=1)
         return replaced[:100] if len(replaced) <= 100 else (replaced[:100 - len(tag) - 1].rstrip() + " " + tag)
