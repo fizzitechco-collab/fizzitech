@@ -309,6 +309,9 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     if clip.get("cta_enabled"):
         from .gta_cta import add_cta
         ass = add_cta(ass, clip, end - start)
+    if clip.get("watch_more_enabled"):
+        from .gta_cta import add_watch_more
+        ass = add_watch_more(ass, clip, end - start)
     from . import source_quality
     requested_quality = int(clip.get("quality", 720))
     if requested_quality == source_quality.AUTO:
