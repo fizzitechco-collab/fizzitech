@@ -1932,6 +1932,14 @@ document.addEventListener("keydown", e => {
   os[(i + (e.key === "ArrowDown" ? 1 : -1) + os.length) % os.length].focus();
 });
 const targetCreator = () => creatorId() || $("#o_creator")?.value || "";
+// When selecting "File under creator" from Home/All videos, use that
+// creator's saved end-CTA preference (unless the user changes it afterwards).
+document.addEventListener("change", e => {
+  if (e.target?.id !== "o_creator") return;
+  const selected = safeList(S.creators).find(c => c.id === e.target.value);
+  const input = $("#o_watch_more_enabled");
+  if (input) input.checked = !!selected?.watch_more_enabled;
+});
 function jobOptions() {
   const n = id => { const el = $(id); if (!el || el.value === "") return null; return Number(el.value); };
   const count = n("#o_max") ?? 6;
