@@ -12,7 +12,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-from . import brain, campaigns, custom_campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage, games, hashtags
+from . import brain, campaigns, custom_campaigns, clip_taste, neon_signals, config, creators, ctx, load, media, render, roman, safe, transcribe, usage, games, hashtags, creator_branding
 
 class _FairQueue:
     """Whose video is next. Each person has their own line and the lines take turns, so someone who adds ten
@@ -130,7 +130,7 @@ on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first f
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "auto", "quality": 360,
             "caption_base": "FFFFFF", "caption_active": "6BD7FF", "hook_box": "FFFFFF", "hook_text": "14100E",
-            "overlay_hook_text": "", "description_text": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "custom_campaign_id": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": ""}  # LEGEND_GTA6_AUTO_V2
+            "overlay_hook_text": "", "description_text": "", "clip_mode": "gaming", "gta6_only_live": False, "facecam_review": False, "caption_language": "auto", "campaign_destination": "", "custom_campaign_id": "", "facecam_position": "auto", "facecam_size": "medium", "facecam_rect": "", "range_start": None, "range_end": None, "cta_enabled": False, "cta_creator_name": "", "watch_more_enabled": False}  # LEGEND_GTA6_AUTO_V2
 
 
 # LEGEND NEON V1: safe per-job analysis defaults
@@ -170,7 +170,7 @@ def clean_options(options) -> dict:
             if str(v).strip():
                 parse_webcam_rect(v)
             v = str(v).strip()[:60]
-        elif k in ("gta6_only_live", "facecam_review", "cta_enabled", "scan_entire"):
+        elif k in ("gta6_only_live", "facecam_review", "cta_enabled", "watch_more_enabled", "scan_entire"):
             v = v is True or str(v).lower() in ("1", "true", "yes", "on")
         elif k == "cta_creator_name":
             v = str(v).strip()[:70]
@@ -451,7 +451,7 @@ def create(source: dict, options: dict, enqueue=True, creator=None, kind="video"
     c = creators.get(creator) if creator else None
     if c:
         d = creators.root(c["id"]) / ("live" if kind == "live" else "videos") / jid
-        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "facecam_position", "facecam_size", "facecam_rect", "cta_enabled", "cta_creator_name", "overlay_hook_text", "description_text") if k in c}}
+        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "facecam_position", "facecam_size", "facecam_rect", "cta_enabled", "cta_creator_name", "watch_more_enabled", "overlay_hook_text", "description_text") if k in c}}
         if kind == "live":
             base["quality"] = int(c.get("clip_quality", 1080))
             base["clip_mode"] = str(c.get("clip_mode", "gaming"))
@@ -708,6 +708,7 @@ def render_one(job, clip, words):
                      facecam_position=clip.get("facecam_position", job["options"].get("facecam_position", "auto")),
                      facecam_size=clip.get("facecam_size", job["options"].get("facecam_size", "medium")),
                      facecam_rect=clip.get("facecam_rect", job["options"].get("facecam_rect", "")))
+        # Cached per-clip branding is preserved on re-make; older clips remain opt-out.
         # Ask for a manual webcam panel before expensive encoding, when requested.
         # The preview lives beside this clip in its protected job folder.
         if clip.get("facecam_review") and not clip.get("facecam_reviewed"):
@@ -1230,6 +1231,8 @@ def _run_job(job):
                             merged.append(tag)
                             used.add(tag.casefold())
                     c["hashtags"] = merged[:12]
+            workspace = creators.get(job.get("creator")) if job.get("creator") else None
+            creator_branding.decorate_clip(c, job, workspace.get("name", "") if workspace else "")
             job["clips"].append(c)
             futures.append((renders.submit(ctx.bind(make), c, list(words)), c))
         job["ai"] = {"model": model, "tokens": tokens,
