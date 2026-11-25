@@ -89,6 +89,14 @@ For automatic posting, **select a creator workspace when starting a new clip job
 
 Use **Home → Post queue** for actual upload results. If a provider rejects the post (missing TikTok video.publish permission, Instagram professional account/media-fetch access, expired OAuth sign-in or an unreachable public HTTPS URL), its error appears there after retries. Clicking Retry after correcting the account is a manual action; queued posts still respect account spacing/daily limits. Creating a brand/paid campaign does not automatically authorize unattended publishing.
 
+## Normal clipping: optional end shoutout and creator-tagged titles
+
+- Select the creator with **File under creator** (or clip within the creator's workspace). **New ordinary Gaming/IRL clips automatically include the creator workspace's name hashtag in the post title**, e.g. `Huge clutch! #IShowSpeed` or `Unexpected reaction #KaiCenat`. Existing matching hashtags are not duplicated; the tag fits inside the 100-character title limit. This also applies when re-saving post text and re-making an ordinary clip.
+- In **Make clips → Options → End-of-clip shoutout**, enable **Show "Watch more on #Creator #Platform" at the end**. For newly rendered clips, the final 3 seconds show a two-line subtle, white outlined overlay slightly below center: `Watch more on` / `#IShowSpeed #Twitch` (or YouTube/Kick based on the verified actual source URL). File uploads with no verified source domain show just the selected creator hashtag, and missing creator workspaces do not invent an identity. Disable the checkbox to keep the clip clean.
+- In **Creator → Setup → Clips**, **End shoutout** sets the default for newly generated creator clips, including automatic livestream clips. Each new Make clips job can opt in/out independently; changes to an already rendered video require re-making it. Defaults are off until enabled deliberately.
+- Protected GTA VI, Expedia and paid custom campaign copy remains untouched; the normal branding pass does not override their title or video. The older GTA-specific CTA remains separate and unchanged.
+- This CTA uses the **existing ASS caption and FFmpeg render**, not a second encoding pass, extra clip length, external dependency or new source download.
+
 ## LegendClipper improvements (feature branch)
 
 - **Facecam from the source video:** after adding a video link, choose a real frame at a timestamp; draw, move, and resize the webcam rectangle. The final 9:16 render puts the facecam above center-cropped gameplay. You can also skip facecam.
